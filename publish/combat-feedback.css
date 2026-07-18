@@ -1,0 +1,143 @@
+.combat-trace {
+  position: absolute;
+  z-index: 3;
+  height: 4px;
+  border-radius: 4px;
+  transform-origin: left center;
+  background: rgba(255, 240, 174, 0.76);
+  box-shadow: 0 0 8px rgba(255, 224, 120, 0.55);
+  pointer-events: none;
+  animation: trace-in 260ms ease-out both;
+}
+
+.combat-trace::before,
+.combat-trace::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fff0ae;
+  border-radius: 50%;
+  background: #7b3d2d;
+  transform: translate(-50%, -50%);
+}
+
+.combat-trace::after {
+  left: 100%;
+}
+
+.combat-marker {
+  position: absolute;
+  z-index: 6;
+  width: 6.5%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff0ae;
+  border-radius: 50%;
+  transform: translate(5%, -115%);
+  background: rgba(123, 39, 31, 0.92);
+  color: #fff7d6;
+  font-size: clamp(12px, 3.5vw, 19px);
+  font-weight: 900;
+  pointer-events: none;
+  animation: marker-in 260ms ease-out both;
+}
+
+.piece.impact {
+  animation: impact-pulse 680ms ease-out both;
+}
+
+.piece.under-check {
+  outline: 4px solid #ffe17a;
+  box-shadow: inset 0 0 0 3px rgba(88, 45, 22, 0.24), 0 0 0 7px rgba(162, 49, 35, 0.5);
+  animation: check-pulse 900ms ease-in-out infinite alternate;
+}
+
+.combat-alert {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: 18px;
+  width: min(88%, 420px);
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 240, 174, 0.72);
+  border-radius: 8px;
+  transform: translateX(-50%);
+  background: rgba(28, 31, 32, 0.94);
+  color: #fff7d6;
+  text-align: center;
+  pointer-events: none;
+  animation: alert-in 220ms ease-out both;
+}
+
+.combat-alert strong,
+.combat-alert span {
+  display: block;
+  white-space: normal;
+}
+
+.combat-alert strong {
+  margin-bottom: 3px;
+  color: #ffe17a;
+  font-size: 20px;
+}
+
+.combat-alert span {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.combat-defeat {
+  bottom: 50%;
+  transform: translate(-50%, 50%);
+  border-color: rgba(255, 225, 122, 0.8);
+  background: rgba(30, 30, 28, 0.96);
+  animation: defeat-in 300ms ease-out both;
+}
+
+.combat-defeat strong {
+  font-size: 23px;
+}
+
+@keyframes trace-in {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+
+@keyframes marker-in {
+  from { opacity: 0; transform: translate(5%, -115%) scale(0.55); }
+  to { opacity: 1; transform: translate(5%, -115%) scale(1); }
+}
+
+@keyframes alert-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes defeat-in {
+  from { opacity: 0; transform: translate(-50%, 42%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 50%) scale(1); }
+}
+
+@keyframes impact-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes check-pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-trace,
+  .combat-marker,
+  .combat-alert,
+  .piece.impact,
+  .piece.under-check {
+    animation: none;
+  }
+}

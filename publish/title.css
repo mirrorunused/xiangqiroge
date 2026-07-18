@@ -1,0 +1,157 @@
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(21, 26, 31, 0.94);
+}
+
+.start-panel {
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(246, 239, 227, 0.22);
+  border-radius: 8px;
+  background: #202830;
+}
+
+.start-panel h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.game-version {
+  margin: -10px 0 0;
+  color: #9da9b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.start-summary {
+  margin: 0;
+  color: #f7e078;
+  font-weight: 800;
+}
+
+.record-summary {
+  margin: 0;
+  color: #c9bda7;
+  font-size: 13px;
+}
+
+.rebel-btn {
+  border-color: #ef4b4b;
+  color: #ffd6ce;
+}
+
+.random-btn {
+  border-color: #f0b65a;
+  color: #ffe4ad;
+}
+
+.quick-btn {
+  border-color: #63c7a3;
+  color: #c9ffe9;
+}
+
+.start-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.start-test-btn {
+  grid-column: 1 / -1;
+}
+
+.unlock-box {
+  padding: 12px;
+  border: 1px solid rgba(246, 239, 227, 0.16);
+  border-radius: 8px;
+  background: #26313a;
+}
+
+.unlock-box h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.unlock-box ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c9bda7;
+}
+
+.unlock-box li + li {
+  margin-top: 5px;
+}
+
+.cheat-box {
+  position: relative;
+  width: min(100%, 380px);
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid rgba(246, 239, 227, 0.24);
+  border-radius: 8px;
+  background: #202830;
+}
+
+.cheat-box h2 {
+  margin: 0 44px 4px 0;
+  font-size: 22px;
+}
+
+.cheat-box label {
+  color: #c9bda7;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cheat-box input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(246, 239, 227, 0.3);
+  border-radius: 6px;
+  outline: none;
+  background: #151a1f;
+  color: #f6efe3;
+  font: inherit;
+}
+
+.cheat-box input:focus {
+  border-color: #f7e078;
+}
+
+.cheat-feedback {
+  min-height: 20px;
+  margin: 0;
+  color: #ff9285;
+  font-size: 14px;
+}
+
+@media (max-width: 430px), (max-height: 700px) {
+  .start-screen {
+    padding: 10px;
+  }
+
+  .start-panel {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .start-panel h2 {
+    font-size: 23px;
+  }
+
+  .start-actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no">
+  <title>兴军讨曌</title>
+  <script>
+    try {
+      window.dzmm?.loading?.progress?.({ phase: "start", message: "Preparing Xiangqi Rogue" });
+    } catch (err) {
+      console.warn("early loading event failed:", err.message);
+    }
+  </script>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./title.css?v=20260716-3">
+  <link rel="stylesheet" href="./story.css?v=20260716-1">
+  <link rel="stylesheet" href="./board-fixes.css">
+  <link rel="stylesheet" href="./controls.css?v=20260716-2">
+  <link rel="stylesheet" href="./combat-feedback.css">
+</head>
+<body>
+  <section id="startScreen" class="start-screen hidden">
+    <div class="start-panel">
+      <h2 id="startTitle">兴军讨曌</h2>
+      <p id="gameVersion" class="game-version">v1.2.2</p>
+      <p id="startSummary" class="start-summary">第 1 关 · 0 积分</p>
+      <p id="recordSummary" class="record-summary">常规最高：第 1 关/0 分 · 义军最高：第 1 关/0 分</p>
+      <div class="start-actions">
+        <button id="startNormalBtn" class="primary">开始常规模式</button>
+        <button id="startRebelBtn" class="rebel-btn">义军破敌（正式版）</button>
+        <button id="startRandomBtn" class="random-btn hidden">随机棋模式</button>
+        <button id="startQuickBtn" class="quick-btn">快速模式</button>
+        <button id="startLoadBtn">读取存档</button>
+        <button id="startTalentBtn">局外天赋</button>
+        <button id="startCodexBtn" class="hidden">道具图鉴</button>
+        <button id="startSettingsBtn">设置</button>
+        <button id="startTestBtn" class="start-test-btn hidden">测试入口</button>
+      </div>
+      <div class="unlock-box">
+        <h3>已解锁道具</h3>
+        <ul id="unlockedList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <main class="game-shell">
+    <section class="topbar">
+      <div>
+        <h1 id="gameTitle">兴军讨曌</h1>
+        <p id="levelText">第 1 关 · 敌军残阵</p>
+      </div>
+      <button id="restartBtn" class="icon-btn" aria-label="重开本关卡">↻</button>
+    </section>
+
+    <section class="stats" aria-label="战局信息">
+      <div><span>积分</span><strong id="scoreText">0</strong></div>
+      <div><span>倍率</span><strong id="multText">x1.00</strong></div>
+      <div><span>道具</span><strong id="itemText">0</strong></div>
+      <div><span>行动</span><strong id="tempoText">1/1</strong></div>
+    </section>
+
+    <section class="board-wrap">
+      <div id="board" class="board" aria-label="中国象棋棋盘"></div>
+      <div id="banner" class="banner hidden"></div>
+    </section>
+
+    <section class="command-panel">
+      <div id="randomPlacementPanel" class="random-placement-panel hidden">
+        <div class="random-placement-head">
+          <strong>随机棋布阵</strong>
+          <span id="randomPlacementStatus">已摆放 0/16</span>
+        </div>
+        <div id="randomReserve" class="random-reserve"></div>
+        <div class="random-placement-actions">
+          <button id="randomAutoBtn" type="button">自动布阵</button>
+          <button id="randomStartBtn" class="primary" type="button" disabled>开始战斗</button>
+        </div>
+      </div>
+      <div id="turnText" class="turn-text">红方行动</div>
+      <div id="tipText" class="tip-text">吃掉黑将即可过关。全子关前拥有双行动，累计 25 个道具后失效。</div>
+      <div class="tool-row">
+        <button id="hintBtn">提示</button>
+        <button id="undoBtn">悔棋</button>
+        <button id="nextBtn" class="primary hidden">下一关</button>
+      </div>
+      <div class="tool-row secondary">
+        <button id="shopBtn">局内商店</button>
+        <button id="itemsBtn">查看道具</button>
+        <button id="moreBtn" aria-expanded="false" aria-controls="morePanel">更多</button>
+      </div>
+      <div id="morePanel" class="more-panel hidden">
+        <button id="talentBtn">局外天赋</button>
+        <button id="saveBtn">手动存档</button>
+        <button id="loadBtn">读取存档</button>
+        <button id="settingsBtn">设置</button>
+        <button id="leaveBtn" class="leave-btn">暂时离开</button>
+        <button id="giveUpBtn" class="danger-btn">放弃本轮</button>
+      </div>
+    </section>
+  </main>
+
+  <section id="rewardModal" class="modal hidden" aria-modal="true">
+    <div class="reward-box">
+      <button id="modalCloseBtn" class="modal-close" aria-label="关闭">×</button>
+      <h2>战斗胜利</h2>
+      <p id="rewardIntro">选择一个奖励继续进军。</p>
+      <div id="rewardCards" class="reward-cards"></div>
+    </div>
+  </section>
+
+  <section id="cheatModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
+    <form id="cheatForm" class="cheat-box">
+      <button id="cheatCloseBtn" class="modal-close" type="button" aria-label="关闭">×</button>
+      <h2 id="cheatTitle">输入作弊码</h2>
+      <label for="cheatInput">作弊码</label>
+      <input id="cheatInput" type="password" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p id="cheatFeedback" class="cheat-feedback" aria-live="polite"></p>
+      <button id="cheatSubmitBtn" class="primary" type="button">解锁测试入口</button>
+    </form>
+  </section>
+
+  <section id="captureModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="captureTitle">
+    <div class="capture-box">
+      <button id="captureCloseBtn" class="modal-close" type="button" aria-label="关闭">×</button>
+      <div class="capture-media">
+        <img id="captureImage" class="capture-image" alt="">
+        <div id="captureImageError" class="capture-image-error hidden" role="status">
+          <strong>插图加载失败</strong>
+          <button id="captureRetryBtn" type="button">重试</button>
+        </div>
+      </div>
+      <div class="capture-copy">
+        <p id="captureEyebrow" class="capture-eyebrow">俘获录</p>
+        <h2 id="captureTitle">俘获剧情</h2>
+        <p id="captureText" class="capture-text"></p>
+        <div id="captureNav" class="capture-nav hidden">
+          <button id="capturePrevBtn" type="button" aria-label="上一则">←</button>
+          <span id="captureIndex"></span>
+          <button id="captureNextBtn" type="button" aria-label="下一则">→</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="./game-1.2.2.js?v=20260718-4"></script>
+</body>
+</html>
