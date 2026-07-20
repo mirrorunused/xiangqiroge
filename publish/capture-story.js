@@ -82,8 +82,8 @@ window.XQ.CaptureStory = (() => {
     await showItem(window.XQ.PrisonStory.earlyDefeat, "义军败局");
   }
 
-  function openSettings(state, render, save, reset) {
-    return window.XQ.StorySettings.open(state, render, save, reset);
+  function openSettings(state, render, save, reset, resetOuter) {
+    return window.XQ.StorySettings.open(state, render, save, reset, resetOuter);
   }
 
   function openGallery(kind, state) {

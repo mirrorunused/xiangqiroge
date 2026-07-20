@@ -5,8 +5,6 @@ window.XQ.Late = (() => {
   const traitNames = { guard: "铁壁营", elephantRiver: "象过河", horseStep: "马位移", horseLeap: "马腾跃", horseRun: "马驰骋", horseFly: "马踏飞燕", advisorFree: "士出宫", kingFree: "将帅出宫", kingGuard: "护驾符" };
   const weights = { banner: 0.25, mult: 0.25, cannon: 0.35, tempo: 0.05 };
   const rebelComboStart = 16;
-  const comboBlocks = [["turtle"], ["fish"], ["rabbit"], ["divine"], ["collapse"], ["eunuch", "horse1", "horse2", "horse3", "horse4"], ["momentum"]];
-  const comboIds = comboBlocks.flat();
 
   function finalQueenLevel() {
     return window.XQ.EnemyStages.lateBase(window.XQ.Config.blackAddOrder.length);
@@ -17,57 +15,49 @@ window.XQ.Late = (() => {
     if (state.level === finalQueenLevel() + 1) addEnemyTrait(state);
     if (state.mode !== "quick" && state.level >= finalQueenLevel() + 2) suppressItems(state);
     if (state.mode === "rebel") startRebelCombo(state);
+    else if (state.mode === "random") startRandomCombo(state);
     else startFixedCombo(state);
     if (state.level >= finalQueenLevel() + 4) lockDrops(state);
   }
 
   function startFixedCombo(state) {
     const offset = state.level - finalQueenLevel();
-    const fixed = {
-      8: "turtle", 9: "fish", 10: "rabbit", 11: "divine", 12: "collapse",
-      13: "eunuch", 14: "horse1", 15: "horse2", 16: "horse3", 17: "horse4", 18: "momentum",
-    };
-    applyCombo(state, fixed[offset]);
+    applyCombo(state, window.XQ.ComboOrder.fixedAt(offset));
   }
 
   function startRebelCombo(state) {
     const index = state.level - rebelComboStart;
     if (index < 0) return;
-    ensureRebelComboOrder(state);
-    applyCombo(state, state.rebelComboOrder[index]);
+    applyCombo(state, window.XQ.ComboOrder.fixedIds()[index]);
   }
 
-  function ensureRebelComboOrder(state) {
-    const current = Array.isArray(state.rebelComboOrder) ? state.rebelComboOrder : [];
-    if (current.length === comboIds.length && comboIds.every((id) => current.includes(id))) return current;
-    if (current.length === comboIds.length - 1 && comboIds.filter((id) => id !== "eunuch").every((id) => current.includes(id))) {
-      const migrated = [...current];
-      migrated.splice(Math.max(0, migrated.indexOf("horse1")), 0, "eunuch");
-      state.rebelComboOrder = migrated;
-      return migrated;
-    }
-    const blocks = comboBlocks.map((block) => [...block]);
-    for (let i = blocks.length - 1; i > 0; i -= 1) {
-      const pick = Math.floor(Math.random() * (i + 1));
-      [blocks[i], blocks[pick]] = [blocks[pick], blocks[i]];
-    }
-    state.rebelComboOrder = blocks.flat();
-    return state.rebelComboOrder;
+  function startRandomCombo(state) {
+    const index = state.level - rebelComboStart;
+    if (index < 0) return;
+    applyCombo(state, window.XQ.ComboOrder.ensureRandom(state)[index]);
   }
 
-  function rebelComboLevels(state) {
-    return ensureRebelComboOrder(state).map((id, index) => ({ id, level: rebelComboStart + index }));
+  function rebelComboLevels() {
+    return window.XQ.ComboOrder.levels();
+  }
+
+  function randomComboLevels(state) {
+    return window.XQ.ComboOrder.randomLevels(state);
   }
 
   function applyCombo(state, id) {
+    state.currentComboId = id || null;
     if (id === "turtle") turtleCombo(state);
     if (id === "fish") fishCombo(state);
     if (id === "rabbit") rabbitCombo(state);
     if (id === "divine") divineCombo(state);
     if (id === "collapse") collapseCombo(state);
     if (id === "eunuch") eunuchCombo(state);
+    if (id === "charmFormation") charmCombo(state, false);
     if (id?.startsWith("horse")) horseCombo(state, Number(id.slice(5)));
+    if (id === "charmBlade") charmCombo(state, true);
     if (id === "momentum") momentumCombo(state);
+    window.XQ.LateExtra.apply(state, id, appendNotice);
   }
 
   function addEnemyTrait(state) {
@@ -139,6 +129,13 @@ window.XQ.Late = (() => {
     appendNotice(state, `组合技关卡：纵马${stage}。黑方马系列道具逐步升级，本关 ${stage + 1} 卒化马。`);
   }
 
+  function charmCombo(state, blade) {
+    state.enemyCharm = { formation: true, blade };
+    appendNotice(state, blade
+      ? "组合技关卡：媚骨蚀锋。媚阵生效；每个红方回合刷新 3 个持续一回合的魅惑格，红子踏入即倒戈，且黑方夺取对应棋子道具。"
+      : "组合技关卡：媚阵。黑方吃掉红子后，在吃子棋子后方空位复制一枚同兵种黑子，并获得对应棋子道具，但红方不会失去道具。");
+  }
+
   function momentumCombo(state) {
     state.enemyMomentum = { active: true };
     state.dropRefreshLocked = false;
@@ -167,11 +164,11 @@ window.XQ.Late = (() => {
   }
 
   function horseSeriesComplete(state, level = state.level) {
-    const horse4 = state.mode === "rebel"
-      ? rebelComboLevels(state).find((entry) => entry.id === "horse4")?.level
-      : finalQueenLevel() + 17;
+    const horse4 = state.mode === "rebel" ? rebelComboLevels().find((entry) => entry.id === "horse4")?.level
+      : state.mode === "random" ? randomComboLevels(state).find((entry) => entry.id === "horse4")?.level
+        : finalQueenLevel() + window.XQ.ComboOrder.offset("horse4");
     return level > horse4;
   }
 
-  return { activeItems, ensureRebelComboOrder, horseSeriesComplete, rebelComboLevels, scoreMult, startLevel };
+  return { activeItems, horseSeriesComplete, randomComboLevels, rebelComboLevels, scoreMult, startLevel };
 })();

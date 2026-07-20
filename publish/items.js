@@ -2,11 +2,10 @@ window.XQ = window.XQ || {};
 window.XQ.Items = (() => {
   const C = window.XQ.Config;
   function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-  function weightedRand(arr, state) {
+  function weightedRand(arr, state, source) {
     const typeByItem = { advisorRiver: "A", elephantRiver: "B" };
-    const weighted = arr.map((item) => ({ item, weight: state?.board?.some((p) => p.side === "r" && p.type === typeByItem[item.id]) ? 3 : 1 }));
-    let roll = Math.random() * weighted.reduce((sum, entry) => sum + entry.weight, 0);
-    return weighted.find((entry) => (roll -= entry.weight) <= 0)?.item || weighted.at(-1)?.item;
+    return window.XQ.ItemRoll.pick(arr, (item) => (state?.board?.some((p) => p.side === "r" && p.type === typeByItem[item.id]) ? 3 : 1)
+      * (source === "shop" ? window.XQ.ItemRoll.shopBonus(item) : 1));
   }
   function uid() { return `i${Date.now()}${Math.random().toString(16).slice(2)}`; }
   function normalize(state) {
@@ -28,7 +27,7 @@ window.XQ.Items = (() => {
     const supply = C.randomItems.find((item) => item.id === "supply");
     if (!blocked.has("supply") && canOffer(state, supply, source) && Math.random() < 0.08) return makeCard(supply, level);
     const pool = C.randomItems.filter((item) => item.id !== "supply" && !blocked.has(item.id) && canOffer(state, item, source));
-    const item = weightedRand(pool.length ? pool : C.randomItems.filter((i) => i.stacks !== false && !blocked.has(i.id) && canOffer(state, i, source)), state);
+    const item = weightedRand(pool.length ? pool : C.randomItems.filter((i) => i.stacks !== false && !blocked.has(i.id) && canOffer(state, i, source)), state, source);
     return makeCard(item, level);
   }
   function makeCard(item, level) {
@@ -54,19 +53,19 @@ window.XQ.Items = (() => {
   function morphTypes(state) {
     const chess = state.talents?.chess || {}; return ["R", "N", "C"].concat(chess.S ? ["S"] : [], chess.Q ? ["Q"] : []);
   }
-
   function morphCards(level, state) {
-    return morphTypes(state).sort(() => Math.random() - 0.5).slice(0, 2).map((type) => ({
+    const cards = morphTypes(state).map((type) => ({
         id: "morph",
         targetType: type,
-        rarity: type === "R" || type === "Q" ? "gold" : "purple",
+        rarity: type === "Q" ? "red" : type === "R" ? "gold" : "purple",
         name: `改制${C.labels.r[type]}令`,
         text: `购买后选择一枚红方非帅棋子，立刻改为${C.labels.r[type]}。`,
         cost: type === "Q" ? (140 + level * 24) * 2 : ["S"].includes(type) ? 880 : 360 + (type === "R" ? 180 : 80),
       }));
+    return window.XQ.ItemRoll.sample(cards, 2);
   }
   function destroyCard(state) {
-    return window.XQ.Levels.isFullEnemy(state.level) ? [{ id: "destroy", name: "破军令", rarity: "red", text: "选择并消灭一个敌方棋子。", cost: 1000 }] : [];
+    return window.XQ.Levels.isFullEnemy(state.level) && !state.enemySacrifice?.active ? [{ id: "destroy", name: "破军令", rarity: "red", text: "选择并消灭一个敌方棋子。", cost: 1000 }] : [];
   }
   function donateCard(state) {
     return state.board?.some((p) => p.side === "r" && p.type !== "K")
@@ -85,12 +84,11 @@ window.XQ.Items = (() => {
     normal.forEach((card, index) => {
       const cost = 140 + level * 24 + index * 55;
       const double = ["rookPhoenix", "rabbitFoot", "turtleShell", "advisorStride"].includes(card.id);
-      card.cost = double ? Math.round(cost * 2) : card.id === "meteor" ? window.XQ.Meteor.cost(level) : card.id === "kingGuard" ? 800 : card.id === "endure" ? 720 : card.id === "shopFree" ? 10 : card.id === "supply" ? Math.max(1, Math.floor((card.points || cost) / 2)) : cost;
+      card.cost = double ? Math.round(cost * 2) : card.id === "meteor" ? window.XQ.Meteor.cost(level) : card.id === "offboard" ? 620 + level * 30 : card.id === "kingGuard" ? 800 : card.id === "charmMakeup" ? 680 : card.id === "endure" ? 720 : card.id === "shopFree" ? 10 : card.id === "supply" ? Math.max(1, Math.floor((card.points || cost) / 2)) : cost;
       if (state.talents?.shopUnlocks?.horseSale && ["horseStep", "horseLeap", "horseRun", "horseFly"].includes(card.id)) card.cost = Math.max(1, Math.round(card.cost / 2));
     });
     const cards = normal.concat(morphCards(level, state), destroyCard(state), tacticCard(level, state)); return state.mode === "random" ? window.XQ.RandomMode.shop(level, state, cards) : cards;
   }
-
   function pushItem(state, card) {
     state.items.push({ id: card.id, uid: uid(), name: card.name, rarity: card.rarity || "white", text: card.text, value: card.value, level: state.level });
   }
@@ -118,11 +116,13 @@ window.XQ.Items = (() => {
     if (card.id === "shopFree") { state.freeRefreshes = (state.freeRefreshes || 0) + 3; return true; }
     if (card.id === "letMove") { state.score += card.points || 0; state.playerFrozen = (state.playerFrozen || 0) + 1; return true; }
     if (card.id === "meteor") return window.XQ.Meteor.arm(state);
+    if (card.id === "charmMakeup") return window.XQ.Corruption.armMakeup(state);
+    if (card.id === "offboard") return true;
+    if (card.id === "riverFlood") { state.riverFlooded = true; return true; }
     if (card.id === "pawnSpell" || card.id === "destroy" || card.id === "donate" || card.id === "morph") return true;
     pushItem(state, card);
     return true;
   }
-
   function sell(state, uid) {
     normalize(state);
     const index = state.items.findIndex((item) => item.uid === uid);
@@ -136,10 +136,7 @@ window.XQ.Items = (() => {
     return value;
   }
 
-  function sellValue(item) {
-    return ({ white: 60, green: 100, purple: 170, gold: 260, red: 420 })[item.rarity || "white"] || 60;
-  }
-
+  function sellValue(item) { return ({ white: 60, green: 100, purple: 170, gold: 260, red: 420 })[item.rarity || "white"] || 60; }
   function talent(state) {
     const next = (state.talents?.retain || 0) + 1;
     return { id: "retain", name: `传承锦囊 ${next}`, rarity: next >= 3 ? "gold" : "purple", text: `新征程最多保留 ${next} 个已获道具。`, cost: 420 + next * 260 };
@@ -173,6 +170,11 @@ window.XQ.Items = (() => {
     if (item.id === "pawnSpell" && state.phase !== "play") return false;
     if (item.id === "donate" && !state.board?.some((p) => p.side === "r" && p.type !== "K")) return false;
     if (item.id === "meteor" && !window.XQ.Meteor.canBuy(state)) return false;
+    const shooterReady = state.phase === "play" && state.board?.some((piece) => piece.side === "r" && piece.type === "K")
+      && state.board?.some((piece) => piece.side === "b");
+    if (item.id === "offboard" && !shooterReady) return false;
+    if (item.id === "riverFlood" && state.riverFlooded) return false;
+    if (item.id === "destroy" && state.enemySacrifice?.active) return false;
     if (item.requires && ownedCount(state, item.requires) === 0) return false;
     return item.stacks !== false || ownedCount(state, id) === 0;
   }
@@ -192,9 +194,7 @@ window.XQ.Items = (() => {
     return true;
   }
 
-  function hintCost(state) {
-    return Math.max(5, Math.round((30 + Math.max(0, (state.level || 1) - 1) * 5) * Math.pow(0.8, count(state, "oracle"))));
-  }
+  function hintCost(state) { return Math.max(5, Math.round((30 + Math.max(0, (state.level || 1) - 1) * 5) * Math.pow(0.8, count(state, "oracle")))); }
 
   return { addTempo, apply, buy, buyTalent, canOffer, captureScore, count, hintCost, makeCard, normalize, outerCards, roll, sell, shop, talent };
 })();

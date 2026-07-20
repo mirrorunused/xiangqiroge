@@ -58,5 +58,5 @@ window.XQ.KingGuard = (() => {
     return window.XQ.Late?.activeItems?.(state) || state.items || [];
   }
 
-  return { refreshDivine, trigger };
+  return { has: hasGuard, refreshDivine, trigger };
 })();

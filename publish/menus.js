@@ -3,9 +3,7 @@ window.XQ = window.XQ || {};
 window.XQ.Menus = (() => {
   const UI = window.XQ.Render;
   const Store = window.XQ.Storage;
-  const Core = window.XQ.Core;
   const Items = window.XQ.Items;
-  const Ops = window.XQ.StateOps;
   const labels = window.XQ.Config.labels.r;
 
   async function persist(state) {
@@ -66,9 +64,16 @@ window.XQ.Menus = (() => {
     await activate?.(card);
   }
 
-  async function talent(state, done) {
+  async function talent(state, done, options = {}) {
+    const unfinished = options.mainMenu ? await unfinishedBattles() : [];
+    const viewOnly = unfinished === null || unfinished.length > 0;
+    const intro = viewOnly
+      ? unfinished === null
+        ? "未能确认是否存在未结束战局，当前仅可查看。请进入对应战局，点击“更多”→“局外天赋”购买；或等待存档恢复后重试。"
+        : `检测到未结束战局：${unfinished.map(battleModeLabel).join("、")}。当前仅可查看。如需购买，请进入对应战局，点击“更多”→“局外天赋”；或等待所有战局结束。`
+      : `当前积分 ${state.score}。局外道具按卡牌说明生效。`;
     const cards = [Items.talent(state)].concat(Items.outerCards(state.level, state));
-    UI.showCards("局外天赋", `当前积分 ${state.score}。局外道具按卡牌说明生效。`, cards, async (card) => {
+    UI.showCards("局外天赋", intro, cards, viewOnly ? () => {} : async (card) => {
       const real = [Items.talent(state)].concat(Items.outerCards(state.level, state))
         .find((item) => item.id === card.id && item.name === card.name);
       if (!real) return UI.banner("天赋列表已变化，请重新打开");
@@ -78,50 +83,22 @@ window.XQ.Menus = (() => {
       UI.banner(`解锁 ${real.name}`);
       await persist(state);
       await done?.();
-    }, "shop");
+    }, viewOnly ? "view" : "shop");
+  }
+
+  async function unfinishedBattles() {
+    const modes = ["normal", "rebel", "random", "quick"];
+    try {
+      const saves = await Promise.all(modes.map((mode) => Store.getMode(mode)));
+      return modes.filter((_mode, index) => saves[index]?.battleInProgress);
+    } catch (err) {
+      console.error("unfinished battle check failed:", err?.code || "unknown", err?.message, err?.stack || "");
+      return null;
+    }
   }
 
   function showItems(state, done) {
-    const limit = state.talents?.retain || 0;
-    const items = state.items.concat((state.talents.outerItems || []).map((i) => ({ ...i, outer: true })));
-    const base = items.length ? items.map((item) => itemCard(state, item, limit)) : [emptyCard()];
-    UI.showCards("现有道具", limit ? `点击局内道具可预选保留，最多 ${limit} 个。` : "当前没有保留天赋。", base, async (card) => {
-      if (card.action === "sell") return sellItem(state, card.uid, done);
-      if (!card.uid || card.outer) return;
-      const toggled = Ops.toggleKeep(state, card.uid);
-      if (toggled !== true) return UI.banner(toggled);
-      await persist(state);
-      done();
-      showItems(state, done);
-    }, "save");
-  }
-
-  function itemCard(state, item, limit) {
-    const kept = state.keepUids?.includes(item.uid);
-    const blocked = state.suppressedItemUids?.includes(item.uid);
-    const activeOuter = state.mode === "rebel" && item.outer && item.uid === state.rebelOuterUid;
-    const opening = state.mode === "random" && item.randomLocked;
-    const randomOuter = state.mode === "random" && item.outer;
-    const randomActive = randomOuter && ["banner", "cannon", "mult"].includes(item.id);
-    return {
-      ...item,
-      name: `${blocked ? "[屏蔽] " : ""}${kept ? "[保留] " : ""}${opening ? "[初始] " : ""}${randomActive ? "[生效] " : randomOuter ? "[停用] " : activeOuter ? "[带入] " : item.outer ? "[局外] " : ""}${item.name}`,
-      text: blocked ? `${item.text} 本关效果被屏蔽，暂不可出售。` : opening ? `${item.text} 本轮初始道具，不可出售。` : randomOuter && !randomActive ? `${item.text} 随机棋模式仅启用积分加成类局外道具。` : item.text,
-      actions: blocked || opening || item.outer || item.id.startsWith("morph-") ? [] : [{ id: "sell", label: "出售" }],
-    };
-  }
-
-  async function sellItem(state, uid, done) {
-    const gained = Items.sell(state, uid);
-    if (!gained) return UI.banner("该道具当前无法出售");
-    UI.banner(`出售成功，积分 +${gained}`);
-    await persist(state);
-    done();
-    showItems(state, done);
-  }
-
-  function emptyCard() {
-    return { id: "empty", name: "暂无道具", rarity: "white", text: "继续过关或在商店购买道具。" };
+    return window.XQ.ItemMenu.show(state, done, persist);
   }
 
   async function save(state) {
@@ -133,7 +110,6 @@ window.XQ.Menus = (() => {
       text: `${Store.describe(saves[index])}。点击覆盖为第 ${state.level} 关、${state.score} 积分。`,
     }));
     UI.showCards("手动存档", "选择一个手动存档框写入。自动存档不会被覆盖。", cards, async (card) => {
-      if (!state.coreOffline) await Core.call("saveManual", state, { slot: card.id }, "手动存档失败", "manual-save");
       const ok = await Store.putManual(state, card.id);
       if (!ok) return UI.banner("手动存档本地备份失败，请稍后重试");
       UI.hideRewards();
@@ -173,6 +149,10 @@ window.XQ.Menus = (() => {
 
   function modeLabel(mode) {
     return mode === "rebel" ? "义军" : mode === "random" ? "随机棋" : mode === "quick" ? "快速" : "常规";
+  }
+
+  function battleModeLabel(mode) {
+    return mode === "rebel" ? "义军破敌" : mode === "random" ? "随机棋模式" : mode === "quick" ? "快速模式" : "常规模式";
   }
 
   return { load, save, shop, showItems, talent };

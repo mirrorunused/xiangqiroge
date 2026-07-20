@@ -1,0 +1,31 @@
+.incense-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.incense-tile {
+  position: absolute;
+  width: 9.4%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 2px solid #a36a22;
+  border-radius: 4px;
+  background: rgba(246, 194, 93, 0.58);
+  color: #56320b;
+  font-size: clamp(11px, 3.2vw, 18px);
+  font-weight: 900;
+  pointer-events: none;
+  box-shadow: inset 0 0 10px rgba(255, 244, 188, 0.8), 0 0 13px rgba(165, 101, 25, 0.62);
+  z-index: 0;
+}
+
+.incense-tile.remnant {
+  opacity: 0.58;
+  border-style: dashed;
+}

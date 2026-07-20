@@ -11,6 +11,7 @@ window.XQ.StorageData = (() => {
     delete data.history;
     delete data.legal;
     delete data.selected;
+    delete data.previewSelected;
     delete data.view;
     delete data.coreOffline;
     data.savedAt = Date.now();

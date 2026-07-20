@@ -5,10 +5,12 @@ window.XQ.TurnFlow = (() => {
     const texts = [];
     const collapse = window.XQ.Collapse?.afterRedAction?.(state, state.lastActionCaptured);
     const fish = window.XQ.Fish?.afterRedAction?.(state);
+    const corruption = window.XQ.Corruption?.afterRedAction?.(state);
     window.XQ.Turtle?.afterRedAction?.(state);
     window.XQ.Rabbit?.afterRedAction?.(state);
     if (collapse) texts.push(collapse);
     if (fish) texts.push(fish);
+    if (corruption) texts.push(corruption);
     const max = (window.XQ.Levels.hasTempo(state) ? 2 : 1) + (active(state, "endure") ? 1 : 0);
     state.playerMovesLeft = Math.min(state.playerMovesLeft || 1, max);
     const capturedBlack = Boolean(state.lastActionCaptured && state.lastMove?.side === "r" && state.lastMove?.captured?.side === "b");

@@ -49,10 +49,12 @@ window.XQ.EnemyTraits = (() => {
     const names = [];
     if (traits?.guard) names.push("铁壁营");
     if (traits?.elephantRiver) names.push("象过河");
+    if (traits?.elephantStep) names.push("象位移");
     if (traits?.advisorFree) names.push("士出宫");
     if (traits?.advisorRiver) names.push("士过河");
     if (traits?.advisorStride) names.push("仕途通达");
     if (traits?.kingFree) names.push("将帅出宫");
+    if (traits?.kingRiver) names.push("将帅过河");
     if (traits?.kingGuard) names.push("护驾符");
     if (traits?.rookPhoenix) names.push("车化凤辇");
     if (traits?.strongPawn) names.push("强兵");
@@ -61,6 +63,7 @@ window.XQ.EnemyTraits = (() => {
     if (traits?.horseLeap) names.push("马腾跃");
     if (traits?.horseRun) names.push("马驰骋");
     if (traits?.horseFly) names.push("马踏飞燕");
+    if (traits?.cannon) names.push("神机炮");
     return names.length ? ` · ${names.join("/")}` : "";
   }
 

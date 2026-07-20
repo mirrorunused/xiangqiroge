@@ -22,6 +22,7 @@ window.XQ.ModeSession = {
       options.render();
       if (!(await window.XQ.RebelLoadout.choose(state, options.render))) return false;
       if (!(await window.XQ.RandomMode.showOpening(state))) return false;
+      state.battleInProgress = true;
       if (!(await options.saveNow())) return false;
       window.XQ.Prebattle.refresh(state);
       await options.enterBattle();
@@ -37,6 +38,7 @@ window.XQ.ModeSession = {
       replace(state, next);
       options.render();
       if (!(await window.XQ.QuickMode.showOpening(state))) return false;
+      state.battleInProgress = true;
       if (!(await options.saveNow())) return false;
       window.XQ.Prebattle.refresh(state);
       await options.enterBattle();

@@ -14,11 +14,19 @@ window.XQ.Turtle = (() => {
   }
 
   function blocks(board, move, side, state) {
-    if (side === "r" && !(state.enemyTurtle?.shield > 0)) return false;
-    if (side === "b" && !(playerTurtle(state)?.shield > 0)) return false;
+    if (side === "r" && !protects(state, "b")) return false;
+    if (side === "b" && !protects(state, "r")) return false;
     if (side !== "r" && side !== "b") return false;
     const target = board.find((piece) => piece.x === move.x && piece.y === move.y);
     return Boolean(target && target.side !== side && target.type === "K");
+  }
+
+  function ready(state, side) {
+    return Boolean(turtleFor(state, side)?.active);
+  }
+
+  function protects(state, side) {
+    return Boolean(turtleFor(state, side)?.shield > 0);
   }
 
   function afterRedAction(state) {
@@ -42,9 +50,19 @@ window.XQ.Turtle = (() => {
   function playerTurtle(state) {
     const hasShell = (window.XQ.Late?.activeItems?.(state) || state.items || []).some((item) => item.id === "turtleShell");
     if (!hasShell) { state.playerTurtle = null; return null; }
-    state.playerTurtle = state.playerTurtle || { active: true, shield: 0, cooldown: 0 };
-    return state.playerTurtle;
+    const turtle = state.playerTurtle || { active: true, shield: 0, cooldown: 0 };
+    turtle.shield = Math.max(0, Number(turtle.shield) || 0);
+    turtle.cooldown = Math.max(0, Number(turtle.cooldown) || 0);
+    turtle.justTriggered = Boolean(turtle.justTriggered);
+    turtle.active = turtle.shield <= 0 && turtle.cooldown <= 0;
+    state.playerTurtle = turtle;
+    return turtle;
   }
 
-  return { afterEnemyAction, afterRedAction, blocks, trigger };
+  function turtleFor(state, side) {
+    if (side === "b") return state.enemyTurtle;
+    return side === "r" ? playerTurtle(state) : null;
+  }
+
+  return { afterEnemyAction, afterRedAction, blocks, protects, ready, sync: playerTurtle, trigger };
 })();

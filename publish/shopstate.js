@@ -5,7 +5,8 @@ window.XQ.ShopState = (() => {
 
   function prepare(state) {
     if (!state.shop || state.shop.level !== state.level || !Array.isArray(state.shop.cards)) reset(state);
-    state.shop.cards = state.shop.cards.filter((card) => card.stacks !== false || I.count(state, card.baseId || card.id) === 0);
+    state.shop.cards = state.shop.cards.filter((card) => !(state.enemySacrifice?.active && card.id === "destroy")
+      && (card.stacks !== false || I.count(state, card.baseId || card.id) === 0));
     state.shop.cards.forEach((card) => { card.shopUid = card.shopUid || uid(); });
     state.shop.refreshCount = state.shop.refreshCount || 0;
     return state.shop.cards;

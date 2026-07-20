@@ -7,7 +7,7 @@ window.XQ.ModeOpening = (() => {
     const items = (state.items || []).filter((item) => wanted.has(item.uid));
     const names = items.length ? items.map((item) => item.name).join("、") : "暂无可用道具";
     return new Promise((resolve) => {
-      window.XQ.Render.showCards(options.title, `${options.intro}${names}`, [{
+      window.XQ.Render.showCards(options.title, `${options.intro}${names}${options.suffix || ""}`, [{
         id: "continue",
         name: options.action,
         rarity: options.rarity || "gold",
@@ -21,11 +21,14 @@ window.XQ.ModeOpening = (() => {
   }
 
   function random(state) {
+    const levels = window.XQ.ComboOrder.randomLevels(state)
+      .map((entry) => `第${entry.level}关 ${window.XQ.ComboOrder.name(entry.id)}`).join(" → ");
     return show(state, {
       pendingKey: "randomOpeningNoticePending",
       uidKey: "randomOpeningItemUids",
       title: "随机棋初始道具",
       intro: "本轮获得 5 个随机道具，并额外获得将帅出宫、仕出宫：",
+      suffix: `\n\n全子关后随机关卡列表：${levels}`,
       action: "开始布阵",
       text: "确认初始道具后进入随机棋布阵。",
     });

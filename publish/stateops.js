@@ -14,6 +14,7 @@ window.XQ.StateOps = (() => {
     window.XQ.Fish?.startLevel?.(state);
     D.start(state);
     window.XQ.Collapse?.startLevel?.(state);
+    window.XQ.RoundEffects?.startLevel?.(state);
   }
 
   function restartLevel(state) {
@@ -45,6 +46,12 @@ window.XQ.StateOps = (() => {
       enemyFish: state.enemyFish ? { ...state.enemyFish } : null,
       enemyEunuch: Boolean(state.enemyEunuch),
       enemyHorse: state.enemyHorse || 0,
+      enemyCharm: state.enemyCharm ? { ...state.enemyCharm } : null,
+      enemyCorruption: state.enemyCorruption ? { ...state.enemyCorruption } : null,
+      enemyMusic: state.enemyMusic ? { ...state.enemyMusic, controlledIds: [...(state.enemyMusic.controlledIds || [])] } : null,
+      enemyReinforcement: state.enemyReinforcement ? { ...state.enemyReinforcement } : null,
+      enemyIncense: state.enemyIncense ? { ...state.enemyIncense } : null,
+      enemySacrifice: state.enemySacrifice ? { ...state.enemySacrifice } : null,
       enemyBonusMoves: state.enemyBonusMoves || 0,
       enemyMovesLeft: state.enemyMovesLeft || 0,
       playerBonusMoves: state.playerBonusMoves || 0,
@@ -52,9 +59,12 @@ window.XQ.StateOps = (() => {
       meteorActive: Boolean(state.meteorActive),
       meteorPenaltyPending: Boolean(state.meteorPenaltyPending),
       enemyTurnSource: state.enemyTurnSource || null,
+      riverFlooded: Boolean(state.riverFlooded),
       captureStorySeen: [...(state.captureStorySeen || [])],
       postRescueStorySeen: [...(state.postRescueStorySeen || [])],
       collapseTiles: (state.collapseTiles || []).map((i) => ({ ...i })),
+      charmTiles: (state.charmTiles || []).map((i) => ({ ...i })),
+      incenseTiles: (state.incenseTiles || []).map((i) => ({ ...i })),
       morphs: { ...(state.morphs || {}) },
       morphBought: { ...(state.morphBought || {}) },
       pendingRevive: state.pendingRevive,
@@ -62,6 +72,7 @@ window.XQ.StateOps = (() => {
       pendingWeaken: state.pendingWeaken,
       pendingMorph: state.pendingMorph,
       pendingDonate: state.pendingDonate,
+      charmMakeupCharges: state.charmMakeupCharges || 0,
       message: state.message,
     });
     if (state.history.length > 3) state.history.shift();
@@ -73,6 +84,7 @@ window.XQ.StateOps = (() => {
     Object.assign(state, old);
     state.pendingRevive = null;
     state.selected = null;
+    state.previewSelected = null;
     state.legal = [];
     state.phase = "play";
     return true;

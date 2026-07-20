@@ -16,13 +16,14 @@ window.XQ.AppSupport = {
       if (card.id === "morph") Act.startMorph(s, options.render, options.saveSoon, card);
       if (card.id === "pawnSpell") Act.startWeaken(s, options.render, options.saveSoon, card);
       if (card.id === "donate") Act.startDonate(s, options.render, options.saveSoon);
+      if (card.id === "offboard") return window.XQ.Shooter.start();
     }
 
     function showNotices() {
       const s = state();
       const Act = window.XQ.Actions;
-      return Act.tempoNotice(s, options.render, options.saveNow)
-        || Act.hardNotice(s, options.render, options.saveNow)
+      return Act.tempoNotice(s, options.render, options.saveNow, showNotices)
+        || Act.hardNotice(s, options.render, options.saveNow, showNotices)
         || Act.outerTempoNotice(s, options.render, options.saveNow);
     }
 
@@ -43,7 +44,7 @@ window.XQ.AppSupport = {
     }
 
     function openRandom() {
-      UI.showCards("随机棋模式", "开局逐枚随机获得 16 枚棋子，每种棋子都可能出现 0–16 枚，不固定发放帅。某类棋子超过 3 枚时，对应棋子道具的出现率提高。另免费发放“将帅出宫”和“仕出宫”，不计入 5 个开局随机道具，进入布阵前会展示本轮初始道具。每局结束后，留在敌方半场的存活棋子会随机撤回己方半场，己方半场棋子保持原位。拾取的变车、变后效果仅持续本局，帅也可变形。前 5 关可直接跳过；全军覆没才会失败。本模式不播放剧情。", [{
+      UI.showCards("随机棋模式", "开局逐枚随机获得 16 枚棋子，每种棋子都可能出现 0–16 枚，不固定发放帅。某类棋子超过 3 枚时，对应棋子道具的出现率提高。另免费发放“将帅出宫”和“仕出宫”，不计入 5 个开局随机道具，进入布阵前会展示本轮初始道具及全子关后的随机关卡列表。每局结束后，留在敌方半场的存活棋子会随机撤回己方半场，己方半场棋子保持原位。拾取的变车、变后效果仅持续本局，帅也可变形。前 5 关可直接跳过；全军覆没才会失败。本模式不播放剧情。", [{
         id: "start",
         name: "进入随机棋征程",
         rarity: "gold",
@@ -84,7 +85,8 @@ window.XQ.AppSupport = {
       };
       return {
         normal: openNormal, rebel: openRebel, random: openRandom, quick: openQuick, load: options.manualLoad,
-        talent: () => Menus.talent(state(), () => Pre.refresh(state())),
+        talent: () => Menus.talent(state(), () => Pre.refresh(state()), { mainMenu: true }),
+        achievements: () => window.XQ.Achievements.open(state()),
         codex: () => window.XQ.ItemCodex.open(state()), settings: options.settings,
         test: () => window.XQ.ComboNav.openTest(state(), { jump, grant }),
       };

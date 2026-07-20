@@ -1,7 +1,7 @@
 window.XQ = window.XQ || {};
 
 window.XQ.Config = {
-  version: "1.2.2",
+  version: "1.2.5",
   files: 9,
   ranks: 10,
   labels: {
@@ -36,9 +36,12 @@ window.XQ.Config = {
     { id: "rabbitFoot", name: "兔脚", rarity: "gold", text: "己方棋子被吃时，若后方一格为空，则后跳避开吃子；触发后冷却 4 回合。", stacks: false, shopOnly: true, unlock: "rabbitFoot" },
     { id: "turtleShell", name: "龟壳", rarity: "red", text: "红帅首次被吃时龟缩避险，进入 3 回合无敌，9 回合后重新生效。", stacks: false, shopOnly: true, unlock: "turtleShell" },
     { id: "endure", name: "卧薪尝胆", rarity: "gold", text: "己方棋子被吃后，红方下一回合额外行动 1 次，最多累积 1 次。", stacks: false, shopOnly: true, unlock: "endure" },
+    { id: "charmMakeup", name: "媚妆", rarity: "red", text: "消耗品。红方下一枚被吃的棋子阵亡后，吃子的黑方棋子转投红方。", stacks: true, shopOnly: true, unlock: "charmMakeup" },
     { id: "meteor", name: "飒沓流星", rarity: "red", text: "消耗品。购买后立即作用于当前红方回合，每吃一个黑子增加一次行动；首次未吃子时效果失效，先走完原有行动，再由黑方连续行动 3 步。", stacks: true, shopOnly: true },
+    { id: "offboard", name: "盘外招", rarity: "gold", text: "消耗品。购买后双方剩余棋子立即进入弹幕战；红帅可拾取冻符使黑方冻结 1 秒，红帅阵亡则战败。", stacks: true, shopOnly: true },
+    { id: "riverFlood", name: "河界汛期", rarity: "gold", text: "本关河界出现河内线。双方棋子跨河前必须先停到河内线；从河内线开始的行动不受限制。", stacks: true, shopOnly: true },
     { id: "elephantRiver", name: "飞象渡河", rarity: "purple", text: "象可过河，仍走田字；持有象时更易出现。", stacks: false },
-    { id: "rookPhoenix", name: "车化凤辇", rarity: "gold", text: "车可沿斜线移动最多 4 格，仍不能越子。", stacks: false },
+    { id: "rookPhoenix", name: "车化凤辇", rarity: "red", text: "车可沿斜线移动最多 4 格，仍不能越子。", stacks: false },
     { id: "elephantStep", name: "象位移", rarity: "gold", text: "象除走田字外，可选横竖移动一格。", stacks: false },
     { id: "horseStep", name: "马位移", rarity: "purple", text: "马除走日字外，可选横竖移动一格。", stacks: false },
     { id: "horseLeap", name: "马腾跃", rarity: "gold", text: "马走日字时不再受蹩马腿限制。", stacks: false, requires: "horseStep" },
@@ -53,4 +56,7 @@ window.XQ.Config = {
     { id: "kingRiver", name: "将帅过河", rarity: "gold", text: "将帅可过河，在全盘横竖移动一格。", stacks: false, requires: "kingFree" },
   ],
   rarityOrder: ["white", "green", "purple", "gold", "red"],
+  rarityWeights: { white: 1, green: 0.82, purple: 0.58, gold: 0.34, red: 0.14 },
+  shopWeightBonuses: { offboard: 3 },
+  consumableIds: ["supply", "shopFree", "letMove", "pawnSpell", "destroy", "donate", "kingGuard", "revive", "meteor", "offboard", "riverFlood", "charmMakeup"],
 };

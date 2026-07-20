@@ -1,9 +1,7 @@
 window.XQ = window.XQ || {};
 window.XQ.Render = (() => {
-  const C = window.XQ.Config;
-  const $ = (id) => document.getElementById(id);
-  const els = {};
-  let currentState = null;
+  const C = window.XQ.Config; const $ = (id) => document.getElementById(id);
+  const els = {}; let currentState = null;
   function init() {
     ["board", "gameTitle", "levelText", "scoreText", "multText", "itemText", "tempoText",
       "turnText", "tipText", "banner", "rewardModal", "rewardCards",
@@ -18,7 +16,8 @@ window.XQ.Render = (() => {
     el.style.top = `${5 + (y / 9) * 90}%`;
   }
   function drawBoard(state, handlers) {
-    els.board.innerHTML = '<div class="river">楚河　　汉界</div>';
+    els.board.classList.toggle("river-flooded", Boolean(state.riverFlooded)); els.board.innerHTML = state.riverFlooded ? '<div class="river flooded"><span>楚河　　汉界</span><small>跨河先停线</small></div>' : '<div class="river"><span>楚河　　汉界</span></div>';
+    window.XQ.BoardPreview.draw(state, els.board, pos);
     state.legal.forEach((m) => {
       const cell = document.createElement("button");
       cell.className = "cell hint";
@@ -44,6 +43,7 @@ window.XQ.Render = (() => {
       pos(mark, tile.x, tile.y);
       els.board.appendChild(mark);
     });
+    window.XQ.Charm?.draw?.(state, els.board, pos); window.XQ.Incense?.draw?.(state, els.board, pos);
     state.board.forEach((p) => {
       const cell = document.createElement("button");
       cell.className = "cell";
@@ -55,7 +55,8 @@ window.XQ.Render = (() => {
       piece.dataset.pieceId = p.id;
       piece.classList.add(`piece-type-${p.type}`);
       if (state.selected === p.id) piece.classList.add("selected");
-      if (state.lastMove && state.lastMove.id === p.id) piece.classList.add("last");
+      if (window.XQ.BoardPreview.selected(state, p.id)) piece.classList.add("enemy-selected");
+      if (state.lastMove && state.lastMove.id === p.id) piece.classList.add("last"); if (p.musicControlled) piece.classList.add("music-controlled");
       if (p.type === "K" && window.XQ.Rules.inCheck(state.board, p.side, state)) piece.classList.add("under-check");
       if ((p.type === "K" && hasKingGuard(state, p.side)) || p.id === state.enemyDivine?.targetId) piece.classList.add("guarded");
       const turtle = p.side === "b" ? state.enemyTurtle : p.side === "r" ? state.playerTurtle : null; if (p.type === "K" && turtle?.active) piece.classList.add("turtle-ready"); if (p.type === "K" && turtle?.shield > 0) piece.classList.add("turtle-shield");
@@ -108,6 +109,8 @@ window.XQ.Render = (() => {
     if (state.meteorPenaltyPending) return "未吃子，飒沓流星失效，黑方即将行动三次。";
     if (state.meteorActive) return "飒沓流星生效：吃黑子可续行；首次未吃子将让黑方连续行动 3 步。";
     if (state.meteorPending) return "飒沓流星已购入，将在红方恢复行动时生效。";
+    if (state.charmMakeupCharges > 0) return `媚妆已备：接下来 ${state.charmMakeupCharges} 枚被吃红子会令吃子者转投红方。`;
+    if (state.riverFlooded) return "河界汛期：跨河前先停到河内线，从河内线出发不受限制。";
     if ((state.playerMovesLeft || 1) > (window.XQ.Levels.hasTempo(state) ? 2 : 1)) return `卧薪尝胆生效：本回合可行动 ${state.playerMovesLeft} 次。`;
     if (window.XQ.Levels.hasTempo(state)) return "双行动生效：走满两步后敌人才行动。";
     if (state.items.length >= 25) return "已累计 25 个道具，双步虎符效果取消。";
@@ -144,7 +147,7 @@ window.XQ.Render = (() => {
     };
     cards.forEach((card, index) => {
       const btn = document.createElement(card.actions?.length ? "div" : "button");
-      if (btn.tagName === "BUTTON") btn.type = "button";
+      if (btn.tagName === "BUTTON") { btn.type = "button"; btn.disabled = mode === "view"; }
       btn.className = `reward-card rarity-${card.rarity || "white"}`;
       if (btn.tagName === "DIV") {
         btn.tabIndex = 0;
@@ -188,12 +191,10 @@ window.XQ.Render = (() => {
   }
   function cardName(card, mode) {
     const tags = [];
-    if (["supply", "shopFree", "letMove", "pawnSpell", "destroy", "donate", "kingGuard", "revive", "meteor"].includes(card.id)) tags.push("消耗品");
+    if (C.consumableIds.includes(card.id)) tags.push("消耗品");
     if (["cannon", "banner", "oracle"].includes(card.id)) tags.push("可叠加");
     return tags.length ? `${card.name}（${tags.join("，")}）` : card.name;
   }
-  function hideRewards() {
-    els.rewardModal.classList.add("hidden");
-  }
+  function hideRewards() { els.rewardModal.classList.add("hidden"); }
   return { banner, hideRewards, init, rewards, showCards, update };
 })();

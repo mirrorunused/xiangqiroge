@@ -69,8 +69,9 @@ window.XQ.RandomPlacement = (() => {
     window.XQ.Fish?.startLevel?.(state);
     window.XQ.Drops.start(state);
     window.XQ.Collapse?.startLevel?.(state);
+    window.XQ.RoundEffects?.startLevel?.(state);
     controls.render();
-    await controls.save();
+    await controls.flush();
     window.XQ.Render.banner("布阵完成，开始战斗");
   }
 
@@ -78,7 +79,7 @@ window.XQ.RandomPlacement = (() => {
     if (!active(state)) return false;
     if (remove(state, id)) {
       controls.render();
-      await controls.save();
+      void controls.save();
     }
     return true;
   }
@@ -87,7 +88,7 @@ window.XQ.RandomPlacement = (() => {
     if (!active(state)) return false;
     if (place(state, x, y)) {
       controls.render();
-      await controls.save();
+      void controls.save();
     }
     return true;
   }

@@ -1,15 +1,9 @@
 window.XQ = window.XQ || {};
 window.XQ.Battle = {
   create(options) {
-    const R = window.XQ.Rules;
-    const L = window.XQ.Levels;
-    const UI = window.XQ.Render;
-    const FX = window.XQ.FX;
-    const Ops = window.XQ.StateOps;
-    const D = window.XQ.Drops;
-    const Story = window.XQ.CaptureStory;
-    const Feedback = window.XQ.CombatFeedback;
-    const runtime = options.runtime;
+    const R = window.XQ.Rules, L = window.XQ.Levels, UI = window.XQ.Render;
+    const FX = window.XQ.FX, Ops = window.XQ.StateOps, D = window.XQ.Drops;
+    const Story = window.XQ.CaptureStory, Feedback = window.XQ.CombatFeedback, runtime = options.runtime;
     function state() { return options.getState(); }
     async function onPiece(id) {
       const s = state();
@@ -19,10 +13,9 @@ window.XQ.Battle = {
         const piece = s.board.find((item) => item.id === id);
         if (!piece || await special(s, piece)) return;
         if (piece.side !== "r") {
-          const target = s.legal.find((move) => move.x === piece.x && move.y === piece.y);
-          if (target) await moveTo(target.x, target.y);
-          return;
+          return window.XQ.BoardPreview.handlePiece(s, piece, moveTo, options.render);
         }
+        window.XQ.BoardPreview.clear(s);
         s.selected = id;
         s.legal = R.legalMoves(s.board, id, s);
         s.message = s.legal.length ? "选择落点" : "这枚棋子当前无合法走法";
@@ -57,20 +50,20 @@ window.XQ.Battle = {
         const result = await window.XQ.Revive.place(s, x, y);
         if (!result) return;
         if (result.text) UI.banner(result.text);
-        if (!await checkOutcome()) {
+        if (!await checkOutcome() && s.side === "r") {
           if (result.consumesAction) finishRed();
           else options.render();
         }
         return saveAndContinue();
       }
       if (!s.selected || !s.legal.some((move) => move.x === x && move.y === y)) return;
-      Ops.snapshot(s);
+      window.XQ.BoardPreview.clear(s); Ops.snapshot(s);
       const event = await applyMove(s.selected, x, y, "r");
       if (event.text) UI.banner(event.text);
       options.render();
       await Feedback.present(s);
       if (event.story) await Story.show(s, event.story);
-      if (!await checkOutcome()) finishRed();
+      if (!await checkOutcome() && s.side === "r") finishRed();
       return saveAndContinue();
     }
     async function applyMove(id, x, y, side) {
@@ -79,11 +72,10 @@ window.XQ.Battle = {
       s.board = result.board;
       s.lastMove = { id, x, y, from: result.from, side, captured: null };
       s.lastActionCaptured = false;
-      let text = "";
-      let story = "";
+      let text = "", story = "", charmText = "";
       if (result.captured) {
         if (side === "r" && result.captured.side === "n" && result.captured.type === "G" && s.enemyFish?.active) Object.assign(s.enemyFish, { skipNextGrass: true, turns: 0 });
-        text = window.XQ.KingGuard.trigger(s, result, id) || window.XQ.Turtle.trigger(s, result, id) || window.XQ.Rabbit.trigger(s, result, id);
+        text = window.XQ.Turtle.trigger(s, result, id) || window.XQ.KingGuard.trigger(s, result, id) || window.XQ.Rabbit.trigger(s, result, id);
         if (!text) {
           s.lastActionCaptured = true;
           if (side === "r" && result.captured.side === "b") {
@@ -93,21 +85,24 @@ window.XQ.Battle = {
               story = result.captured.type;
             }
             if (s.enemyMomentum?.active) s.enemyBonusMoves = Math.min(2, (s.enemyBonusMoves || 0) + 1);
+            charmText = window.XQ.Corruption?.onRedCapture?.(s, id) || "";
           } else if (side === "b" && result.captured.side === "r") {
             window.XQ.Mode.redCaptured(s, result.captured);
-          }
+            charmText = [window.XQ.Charm?.onBlackCapture?.(s, result, id), window.XQ.Corruption?.onBlackCapture?.(s, id)].filter(Boolean).join("\n");
+          } else if (side === "b" && result.captured.side === "b") charmText = window.XQ.Sacrifice?.onOwnCapture?.(s, result.captured) || "";
         }
         FX.tone(side === "r" ? 520 : 220, 80);
       } else FX.tone(side === "r" ? 360 : 180, 45);
       s.lastMove.captured = s.lastActionCaptured ? { ...result.captured } : null;
-      text = text || window.XQ.Collapse?.enter?.(s, id, side) || await D.collect(s, id, side);
+      const tileText = text ? "" : (window.XQ.Charm?.onRedMove?.(s, id) || window.XQ.Collapse?.enter?.(s, id, side) || "");
+      const dropText = text || tileText ? "" : await D.collect(s, id, side);
+      text = [text, charmText, tileText, dropText].filter(Boolean).join("\n");
       return { text, story };
     }
     function finishRed() {
       const s = state();
       const flow = window.XQ.TurnFlow.afterRedAction(s);
-      s.selected = null;
-      s.legal = [];
+      window.XQ.BoardPreview.clear(s); s.selected = null; s.legal = [];
       if (s.playerMovesLeft > 0) s.message = flow.reason === "meteor-warning"
         ? "未吃子，飒沓流星失效，黑方即将行动三次"
         : `红方继续行动，还剩 ${s.playerMovesLeft} 步`;
@@ -132,12 +127,12 @@ window.XQ.Battle = {
           options.render();
           await Feedback.present(s);
           if (await checkOutcome()) return;
-          window.XQ.Turtle.afterEnemyAction(s);
-          window.XQ.Rabbit.afterEnemyAction(s);
+          window.XQ.Turtle.afterEnemyAction(s); window.XQ.Rabbit.afterEnemyAction(s);
           finishEnemy(s);
+          if (s.side === "r" && window.XQ.Outcome.redLocked(s) && await checkOutcome()) return;
         }
         options.render();
-        await options.saveNow();
+        void options.saveSoon();
         if (s.phase === "play" && s.side === "b") setTimeout(enemyTurn, 420);
       });
     }
@@ -155,7 +150,7 @@ window.XQ.Battle = {
       } else if (s.playerFrozen > 0) {
         s.playerFrozen -= 1;
         s.enemyMovesLeft = 0;
-        s.message = "冻结生效，红方跳过行动";
+        s.message = ["冻结生效，红方跳过行动", window.XQ.RoundEffects?.skipPlayerTurn?.(s)].filter(Boolean).join("\n");
         D.spawn(s, false);
       } else {
         startPlayer(s, R.inCheck(s.board, "r", s) ? "红帅被将军，先解围" : "红方行动");
@@ -165,13 +160,12 @@ window.XQ.Battle = {
     function startPlayer(s, message) {
       s.side = "r";
       s.playerMovesLeft = (L.hasTempo(s) ? 2 : 1) + (s.playerBonusMoves || 0);
-      s.playerBonusMoves = 0;
-      s.enemyMovesLeft = 0;
-      s.enemyTurnSource = null;
+      s.playerBonusMoves = 0; s.enemyMovesLeft = 0; s.enemyTurnSource = null;
       const note = window.XQ.KingGuard.refreshDivine(s);
       const meteor = window.XQ.Meteor.startTurn(s);
-      s.message = [message, note, meteor].filter(Boolean).join("\n");
       D.spawn(s, false);
+      const round = window.XQ.RoundEffects?.startTurn?.(s);
+      s.message = [message, note, meteor, round].filter(Boolean).join("\n");
     }
     async function checkOutcome() {
       const s = state();
@@ -192,7 +186,7 @@ window.XQ.Battle = {
     }
     async function saveAndContinue() {
       options.render();
-      await options.saveNow();
+      void options.saveSoon();
       if (state().phase === "play" && state().side === "b") setTimeout(enemyTurn, 420);
     }
     return { checkOutcome, enemyTurn, onMove, onPiece };

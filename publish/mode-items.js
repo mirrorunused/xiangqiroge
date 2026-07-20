@@ -1,7 +1,7 @@
 window.XQ = window.XQ || {};
 
 window.XQ.ModeItems = (() => {
-  const EXCLUDED = new Set(["supply", "shopFree", "pawnSpell", "revive", "meteor"]);
+  const EXCLUDED = new Set(["supply", "shopFree", "pawnSpell", "revive", "meteor", "riverFlood", "charmMakeup"]);
   const APPLICABLE = {
     K: ["kingFree", "kingRiver", "kingGuard", "turtleShell"],
     A: ["advisorFree", "advisorRiver", "advisorStride"],
@@ -54,7 +54,7 @@ window.XQ.ModeItems = (() => {
   }
 
   function weightedPick(pool, counts = {}) {
-    const weighted = pool.map((item) => ({ item, weight: itemWeight(item.id, counts) }));
+    const weighted = pool.map((item) => ({ item, weight: itemWeight(item, counts) }));
     const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = Math.random() * total;
     for (const entry of weighted) {
@@ -64,8 +64,9 @@ window.XQ.ModeItems = (() => {
     return weighted.at(-1)?.item || null;
   }
 
-  function itemWeight(id, counts) {
-    let weight = 1;
+  function itemWeight(item, counts) {
+    const id = item.id;
+    let weight = window.XQ.ItemRoll.rarityWeight(item);
     if (id === "advisorRiver" && Number(counts.A || 0) > 0) weight += 2;
     if (id === "elephantRiver" && Number(counts.B || 0) > 0) weight += 2;
     Object.entries(APPLICABLE).forEach(([type, ids]) => {

@@ -9,81 +9,46 @@ window.XQ.Storage = (() => {
     quick: "xiangqi-rogue-save-quick",
   };
   const MANUAL_PREFIX = "xiangqi-rogue-manual-";
-  const Data = window.XQ.StorageData, cache = new Map();
+  const Data = window.XQ.StorageData;
+  const Backend = window.XQ.StorageBackend.create();
   let chain = Promise.resolve();
   let timer = null;
   let pending = null;
   let waiters = [];
   let failures = 0;
-  let migrated = false, local;
-  function localStore() {
-    if (local !== undefined) return local;
-    try {
-      local = window.localStorage;
-      local.setItem("__xq_probe__", "1"); local.removeItem("__xq_probe__");
-    } catch (_) { local = null; }
-    return local;
-  }
+  let migrated = false, migrationTask = null;
+  let pendingSince = 0, lastDrainAt = 0;
+  const fingerprints = new Map();
+  const QUEUE_DELAY = 1500;
+  const MIN_WRITE_GAP = 6000;
+  const MAX_WAIT = 10000;
   function modeName(mode) {
     return window.XQ.Mode.normalizeName(mode);
   }
-  function copy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
-  async function read(key) {
-    if (cache.has(key)) return copy(cache.get(key));
-    if (window.dzmm?.kv) {
-      try {
-        const data = await window.dzmm.kv.get(key);
-        const value = data?.value ?? null; cache.set(key, value); return copy(value);
-      } catch (err) {
-        console.warn("kv get failed:", err.message);
-      }
-    }
-    try {
-      const raw = localStore()?.getItem(key);
-      const value = raw ? JSON.parse(raw) : null; cache.set(key, value); return copy(value);
-    } catch (_) {
-      return null;
-    }
-  }
-  async function write(key, data) {
-    let ok = false;
-    try {
-      if (window.dzmm?.kv) {
-        await window.dzmm.kv.put(key, data);
-        ok = true;
-      }
-    } catch (err) {
-      console.warn("kv put failed:", err.message);
-    }
-    try {
-      const store = localStore();
-      if (store) { store.setItem(key, JSON.stringify(data)); ok = true; }
-    } catch (_) {}
-    if (!ok) throw new Error("存档写入失败"); cache.set(key, copy(data));
-  }
-  async function remove(key) {
-    try {
-      if (window.dzmm?.kv) await window.dzmm.kv.delete(key);
-    } catch (err) {
-      console.warn("kv delete failed:", err.message);
-    }
-    try {
-      localStore()?.removeItem(key);
-    } catch (_) {} cache.delete(key);
-  }
+  const read = Backend.read;
+  const write = Backend.write;
+  const remove = Backend.remove;
   async function migrate() {
     if (migrated) return;
-    migrated = true;
-    const [legacy, normal, rebel, random, quick, shared] = await Promise.all([
-      read(LEGACY_KEY), read(MODE_KEYS.normal), read(MODE_KEYS.rebel), read(MODE_KEYS.random), read(MODE_KEYS.quick), read(SHARED_KEY),
-    ]);
-    const legacyMode = modeName(legacy?.mode);
-    if (legacy && !(legacyMode === "normal" ? normal : rebel)) {
-      await write(MODE_KEYS[legacyMode], Data.packMode(legacy));
+    if (migrationTask) return migrationTask;
+    migrationTask = (async () => {
+      const [legacy, normal, rebel, random, quick, shared] = await Promise.all([
+        read(LEGACY_KEY), read(MODE_KEYS.normal), read(MODE_KEYS.rebel), read(MODE_KEYS.random), read(MODE_KEYS.quick), read(SHARED_KEY),
+      ]);
+      const legacyMode = modeName(legacy?.mode);
+      if (legacy && !(legacyMode === "normal" ? normal : rebel)) {
+        await write(MODE_KEYS[legacyMode], Data.packMode(legacy));
+      }
+      const source = [legacy, normal, rebel, random, quick].filter(Boolean).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)).pop();
+      if (!shared && source) await write(SHARED_KEY, Data.sharedFrom(source));
+      if (legacy) await remove(LEGACY_KEY);
+      migrated = true;
+    })();
+    try {
+      await migrationTask;
+    } finally {
+      migrationTask = null;
     }
-    const source = [legacy, normal, rebel, random, quick].filter(Boolean).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)).pop();
-    if (!shared && source) await write(SHARED_KEY, Data.sharedFrom(source));
-    if (legacy) await remove(LEGACY_KEY);
   }
   async function getShared() {
     await migrate();
@@ -121,6 +86,7 @@ window.XQ.Storage = (() => {
   function schedule(state, onError, immediate) {
     const mode = modeName(state.mode);
     if (pending && pending.mode !== mode) drain();
+    if (!pending) pendingSince = Date.now();
     pending = {
       mode,
       modeData: Data.packMode(state),
@@ -130,7 +96,11 @@ window.XQ.Storage = (() => {
     const promise = new Promise((resolve) => waiters.push(resolve));
     if (timer) clearTimeout(timer);
     if (immediate) drain();
-    else timer = setTimeout(drain, 220);
+    else {
+      const now = Date.now();
+      const runAt = Math.min(pendingSince + MAX_WAIT, Math.max(now + QUEUE_DELAY, lastDrainAt + MIN_WRITE_GAP));
+      timer = setTimeout(drain, Math.max(0, runAt - now));
+    }
     return promise;
   }
   function drain() {
@@ -140,11 +110,13 @@ window.XQ.Storage = (() => {
     const job = pending;
     const batch = waiters;
     pending = null;
+    pendingSince = 0;
     waiters = [];
     chain = chain.then(async () => {
       try {
-        await write(MODE_KEYS[job.mode], job.modeData);
-        await write(SHARED_KEY, job.sharedData);
+        await writeChanged(MODE_KEYS[job.mode], job.modeData);
+        await writeChanged(SHARED_KEY, job.sharedData);
+        lastDrainAt = Date.now();
         failures = 0;
         batch.forEach((resolve) => resolve(true));
       } catch (err) {
@@ -155,6 +127,14 @@ window.XQ.Storage = (() => {
       }
     });
     return chain;
+  }
+  async function writeChanged(key, data) {
+    const comparable = { ...data };
+    delete comparable.savedAt;
+    const fingerprint = JSON.stringify(comparable);
+    if (fingerprints.get(key) === fingerprint) return;
+    await write(key, data);
+    fingerprints.set(key, fingerprint);
   }
   function queue(state, onError) {
     return schedule(state, onError, false);
@@ -181,10 +161,20 @@ window.XQ.Storage = (() => {
   async function clearMode(mode) {
     await drain();
     await chain;
-    await remove(MODE_KEYS[modeName(mode)]);
+    const key = MODE_KEYS[modeName(mode)];
+    await remove(key);
+    fingerprints.delete(key);
+  }
+  async function retry(key) {
+    Backend.reset(key);
+    if (key) {
+      return read(key, true);
+    }
+    migrated = false;
+    return getInitial();
   }
   return {
     clearMode, describe, flush, getInitial, getManual, getMode, getShared,
-    put: flush, putManual, queue, seed, withShared,
+    put: flush, putManual, queue, retry, seed, status: Backend.status, withShared,
   };
 })();

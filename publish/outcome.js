@@ -7,7 +7,9 @@ window.XQ.Outcome = (() => {
   }
 
   function redLocked(state) {
-    return !window.XQ.Rules.sideMoves(state.board, "r", state).length;
+    const locked = !window.XQ.Rules.sideMoves(state.board, "r", state).length;
+    if (locked && window.XQ.Defense.deferLockedKing(state, window.XQ.Rules)) return false;
+    return locked;
   }
 
   function winText(state) {
@@ -26,14 +28,12 @@ window.XQ.Outcome = (() => {
     window.XQ.Levels.settle(state);
     state.phase = "won";
     state.message = text || resultText;
-    if (state.level === 14) window.XQ.Progression.unlockTempo(state);
-    let storyGallery = "";
+    let milestones = [];
     if (state.level === 15) {
-      window.XQ.Progression.finishRun(state);
-      storyGallery = window.XQ.Progression.unlockStoryGalleries(state);
+      milestones = window.XQ.Progression.finishRun(state);
+      milestones.push(...window.XQ.Progression.unlockStoryGalleries(state));
     }
-    const unlocked = window.XQ.Progression.unlockComboShop(state);
-    if (storyGallery) unlocked.unshift(storyGallery);
+    const unlocked = milestones.concat(window.XQ.Progression.unlockComboShop(state));
     const rewards = state.mode === "random" ? window.XQ.RandomMode.reward(state) : window.XQ.Items.roll(state.level, state);
     state.pendingRewards = rewards;
     return { rewards, unlocked };

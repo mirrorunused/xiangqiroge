@@ -23,6 +23,7 @@ window.XQ.Prebattle = (() => {
     $("startQuickBtn").onclick = () => actions.quick?.();
     $("startLoadBtn").onclick = () => actions.load?.();
     $("startTalentBtn").onclick = () => actions.talent?.();
+    $("startAchievementsBtn").onclick = () => actions.achievements?.();
     $("startCodexBtn").onclick = () => actions.codex?.();
     $("startSettingsBtn").onclick = () => actions.settings?.();
     $("startTestBtn").onclick = () => {
@@ -119,6 +120,8 @@ window.XQ.Prebattle = (() => {
     $("recordSummary").textContent = `常规 ${normal.level}关 · 义军 ${rebel.level}关 · 随机棋 ${random.level}关`;
     $("startRandomBtn").classList.toggle("hidden", !state.talents?.randomModeUnlocked);
     $("startCodexBtn").classList.toggle("hidden", !window.XQ.ItemCodex?.isUnlocked?.(state));
+    const achievement = window.XQ.Achievements.progress(state);
+    $("startAchievementsBtn").textContent = `成就 ${achievement.done}/${achievement.total}`;
     $("unlockedList").innerHTML = "";
     unlocked(state).forEach((text) => {
       const li = document.createElement("li");
@@ -165,6 +168,7 @@ window.XQ.Prebattle = (() => {
     if (t.shopUnlocks?.advisorStride) list.push("局内随机商店已解锁仕途通达");
     if (t.shopUnlocks?.horseSale) list.push("马系列局内商店售价减半");
     if (t.shopUnlocks?.endure) list.push("局内随机商店已解锁卧薪尝胆");
+    if (t.shopUnlocks?.charmMakeup) list.push("局内随机商店已解锁媚妆");
     if (t.captureGalleryUnlocked) list.push("棋子被俘剧情图鉴已解锁");
     if (t.prisonGalleryUnlocked && t.defeatGalleryUnlocked) list.push("关押剧情图鉴与义军兵败剧情图鉴已解锁");
     (t.outerItems || []).forEach((item) => list.push(item.name));

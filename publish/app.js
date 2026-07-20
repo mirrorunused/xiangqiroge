@@ -1,9 +1,7 @@
 window.XQ = window.XQ || {};
-
 (() => {
   const UI = window.XQ.Render;
   const Store = window.XQ.Storage;
-  const Core = window.XQ.Core;
   const FX = window.XQ.FX;
   const Menus = window.XQ.Menus;
   const Ops = window.XQ.StateOps;
@@ -34,7 +32,7 @@ window.XQ = window.XQ || {};
     const result = window.XQ.Outcome.settleWin(state, text);
     UI.banner(text || "破阵成功");
     if (window.XQ.QuickMode.is(state)) {
-      render();
+      state.battleInProgress = false; render();
       await saveNow();
       return window.XQ.QuickMode.showEnd(state, true, leaveToMenu);
     }
@@ -66,9 +64,10 @@ window.XQ = window.XQ || {};
     state.phase = "lost";
     UI.banner(text || "红帅被擒，积分保留");
     if (window.XQ.QuickMode.is(state)) {
-      render();
+      const unlocked = window.XQ.Achievements.complete(state, "firstDefeat");
+      state.battleInProgress = false; render();
       await saveNow();
-      return window.XQ.QuickMode.showEnd(state, false, leaveToMenu);
+      return window.XQ.QuickMode.showEnd(state, false, leaveToMenu, unlocked);
     }
     await window.XQ.RunEnd.fail(state, async () => {
       const result = Ops.newRun(state);
@@ -96,13 +95,12 @@ window.XQ = window.XQ || {};
     render();
     await saveNow();
   }
-
   async function restartLevel() {
     state.score = Math.min(state.score, state.levelStartScore ?? state.score);
     Ops.restartLevel(state);
     render();
     await saveNow();
-    UI.banner("已重开本关卡");
+    if (!support.showNotices()) UI.banner("已重开本关卡");
   }
 
   async function manualLoad() {
@@ -112,15 +110,19 @@ window.XQ = window.XQ || {};
       Pre.refresh(state);
     });
   }
-
   function openSettings() {
-    window.XQ.CaptureStory.openSettings(state, render, saveNow, resetCurrent);
+    window.XQ.CaptureStory.openSettings(state, render, saveNow, resetCurrent, resetOuterUnlocks);
   }
 
   async function resetCurrent() {
     await modeSession.resetCurrent();
   }
-
+  async function resetOuterUnlocks() {
+    window.XQ.Progression.resetOuterUnlocks(state);
+    render();
+    await saveNow();
+    Pre.refresh(state);
+  }
   async function leaveToMenu() {
     closeMore();
     if (!(await saveNow())) return;
@@ -142,7 +144,7 @@ window.XQ = window.XQ || {};
     FX.loading("progress", { phase: "runtime_initializing", message: "Loading save data" });
     state = window.XQ.Levels.baseState(await Store.getInitial());
     runtime = window.XQ.Runtime.create(() => state, render);
-    battle = window.XQ.Battle.create({ getState: () => state, runtime, render, saveNow, win, lose });
+    battle = window.XQ.Battle.create({ getState: () => state, runtime, render, saveNow, saveSoon, win, lose });
     modeSession = window.XQ.ModeSession.create({
       getState: () => state, render, saveNow, enterBattle,
     });
@@ -150,15 +152,14 @@ window.XQ = window.XQ || {};
       getState: () => state, render, saveNow, saveSoon, manualLoad,
       enterBattle, selectMode: modeSession.select, selectQuick: modeSession.startQuick, settings: openSettings,
     });
-    window.XQ.RandomPlacement.configure({ getState: () => state, render, save: saveNow });
+    window.XQ.RandomPlacement.configure({ getState: () => state, render, save: saveSoon, flush: saveNow });
+    window.XQ.Shooter.configure({ getState: () => state, render, saveNow, win, lose });
     if (!state.board?.length) Ops.beginLevel(state);
     bind();
     render();
     Pre.show(state, support.preActions());
     requestAnimationFrame(() => FX.loading("ready"));
-    void Core.init(state);
   }
-
   function bind() {
     runtime.bind("restartBtn", "restart", restartLevel);
     runtime.bind("hintBtn", "hint", showHint);

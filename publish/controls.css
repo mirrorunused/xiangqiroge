@@ -18,6 +18,32 @@
   min-height: 44px;
 }
 
+.item-sort-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 10px 0;
+  padding: 4px;
+  border: 1px solid rgba(246, 239, 227, 0.2);
+  border-radius: 8px;
+  background: rgba(16, 22, 27, 0.72);
+}
+
+.item-sort-controls button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 5px;
+  border-color: transparent;
+  font-size: 13px;
+  white-space: normal;
+}
+
+.item-sort-controls button.active {
+  border-color: #f7e078;
+  background: #3b4d55;
+  color: #fff4b8;
+}
+
 .more-panel {
   position: absolute;
   z-index: 6;

@@ -11,18 +11,22 @@
       console.warn("early loading event failed:", err.message);
     }
   </script>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20260720-1">
   <link rel="stylesheet" href="./title.css?v=20260716-3">
   <link rel="stylesheet" href="./story.css?v=20260716-1">
-  <link rel="stylesheet" href="./board-fixes.css">
-  <link rel="stylesheet" href="./controls.css?v=20260716-2">
+  <link rel="stylesheet" href="./board-fixes.css?v=20260720-6">
+  <link rel="stylesheet" href="./controls.css?v=20260718-4">
   <link rel="stylesheet" href="./combat-feedback.css">
+  <link rel="stylesheet" href="./charm.css?v=20260720-1">
+  <link rel="stylesheet" href="./incense.css?v=20260720-2">
+  <link rel="stylesheet" href="./music-charm.css?v=20260720-1">
+  <link rel="stylesheet" href="./shooter.css?v=20260720-1">
 </head>
 <body>
   <section id="startScreen" class="start-screen hidden">
     <div class="start-panel">
       <h2 id="startTitle">兴军讨曌</h2>
-      <p id="gameVersion" class="game-version">v1.2.2</p>
+      <p id="gameVersion" class="game-version">v1.2.5</p>
       <p id="startSummary" class="start-summary">第 1 关 · 0 积分</p>
       <p id="recordSummary" class="record-summary">常规最高：第 1 关/0 分 · 义军最高：第 1 关/0 分</p>
       <div class="start-actions">
@@ -32,6 +36,7 @@
         <button id="startQuickBtn" class="quick-btn">快速模式</button>
         <button id="startLoadBtn">读取存档</button>
         <button id="startTalentBtn">局外天赋</button>
+        <button id="startAchievementsBtn">成就</button>
         <button id="startCodexBtn" class="hidden">道具图鉴</button>
         <button id="startSettingsBtn">设置</button>
         <button id="startTestBtn" class="start-test-btn hidden">测试入口</button>
@@ -142,6 +147,25 @@
     </div>
   </section>
 
-  <script src="./game-1.2.2.js?v=20260718-4"></script>
+  <section id="shooterModal" class="shooter-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shooterTitle">
+    <div class="shooter-head">
+      <div>
+        <p class="shooter-kicker">局内道具 · 盘外招</p>
+        <h2 id="shooterTitle">长蛇破阵</h2>
+      </div>
+      <div class="shooter-stats" aria-live="polite">
+        <strong id="shooterUnits">红 0 / 黑 0</strong>
+        <strong id="shooterLeaderHp">帅 0/0</strong>
+        <strong id="shooterEffect">冻符刷新中</strong>
+      </div>
+      <button id="shooterSurrenderBtn" class="shooter-surrender" type="button">认输</button>
+    </div>
+    <div class="shooter-stage">
+      <canvas id="shooterCanvas" aria-label="盘外招弹幕射击战场"></canvas>
+      <p class="shooter-control">拖动战场或使用方向键 / WASD 控制红帅</p>
+    </div>
+  </section>
+
+  <script src="./game-1.2.5.js?v=20260720-4"></script>
 </body>
 </html>

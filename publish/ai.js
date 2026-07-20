@@ -7,9 +7,9 @@ window.XQ.AI = (() => {
   function scoreMove(state, move) {
     const p = state.board.find((q) => q.id === move.id);
     const target = R.at(state.board, move.x, move.y);
-    const guard = window.XQ.Items.count(state, "guard");
+    const guard = Boolean(state.enemyTraits?.guard);
     let score = Math.random() * 4;
-    if (target) score += C.values[target.type] * (guard ? 0.78 : 1);
+    if (target) score += target.side === p.side ? 34 - C.values[target.type] * 0.28 : C.values[target.type] * (guard ? 0.78 : 1);
     const next = R.move(state.board, move.id, move.x, move.y).board;
     if (R.inCheck(next, "r", state)) score += 55;
     if (R.inCheck(next, "b", state)) score -= 180;
@@ -36,6 +36,8 @@ window.XQ.AI = (() => {
         const target = R.at(state.board, m.x, m.y);
         const next = R.move(state.board, m.id, m.x, m.y).board;
         let score = target ? C.values[target.type] : 0;
+        if (state.enemyCharm?.blade && state.charmTiles?.some((tile) => tile.x === m.x && tile.y === m.y)) score -= 1000;
+        if (target?.side === "b" && state.enemyCorruption?.active && !(state.enemyCorruption.cooldown > 0)) score -= 1000;
         if (R.inCheck(next, "b", state)) score += scout ? 80 : 35;
         if (R.inCheck(next, "r", state)) score -= 80;
         return { ...m, score };

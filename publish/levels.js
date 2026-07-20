@@ -29,7 +29,6 @@ window.XQ.Levels = (() => {
     }
     return board;
   }
-
   function baseState(saved) {
     const state = {
       level: 1,
@@ -48,7 +47,7 @@ window.XQ.Levels = (() => {
       capturedRed: [], levelStartCapturedRed: null,
       shop: null, freeRefreshes: 0,
       enemyFrozen: 0, playerFrozen: 0,
-      enemyTraits: {}, enemyTurtle: null, enemyRabbit: null, enemyDivine: null, enemyCollapse: null, enemyFish: null, enemyEunuch: false, enemyHorse: 0, collapseTiles: [], hardNotice: "", tempoNotice: false, tempoDeclined: false, suppressedItemUids: [], dropRefreshLocked: false,
+      enemyTraits: {}, enemyTurtle: null, enemyRabbit: null, enemyDivine: null, enemyCollapse: null, enemyFish: null, enemyEunuch: false, enemyHorse: 0, enemyCharm: null, enemyCorruption: null, enemyMusic: null, enemyReinforcement: null, enemyIncense: null, enemySacrifice: null, charmTiles: [], incenseTiles: [], collapseTiles: [], hardNotice: "", tempoNotice: false, tempoDeclined: false, suppressedItemUids: [], dropRefreshLocked: false, currentComboId: null,
       baseReward: 100,
       lastSettlement: null,
       bestRecord: { level: 1, score: 0 },
@@ -57,14 +56,15 @@ window.XQ.Levels = (() => {
       morphBought: { R: 0, N: 0, C: 0, S: 0, Q: 0 },
       morphs: {},
       pendingMorph: null, pendingRevive: null,
-      pendingDestroy: false, pendingWeaken: false,
+      pendingDestroy: false, pendingWeaken: false, charmMakeupCharges: 0,
       message: "红方行动",
-      mode: "normal", rebelOuterUid: null,
+      mode: "normal", battleInProgress: false, rebelOuterUid: null,
       bestRecords: { normal: { level: 1, score: 0 }, rebel: { level: 1, score: 0 }, random: { level: 1, score: 0 } },
       settings: { captureStoryMode: "story", rebelDefeatStory: true, rebelEarlyDefeatStory: true },
-      captureStorySeen: [], postRescueStorySeen: [], rebelComboOrder: [],
+      captureStorySeen: [], postRescueStorySeen: [], rebelComboOrder: [], randomComboOrder: [],
       enemyBonusMoves: 0, enemyMovesLeft: 0, playerBonusMoves: 0, enemyMomentum: null,
       meteorPending: false, meteorActive: false, meteorPenaltyPending: false, enemyTurnSource: null,
+      riverFlooded: false,
       view: { hintCost: 30, maxMoves: 1, scoreMult: 1, levelName: "第 1 关" },
     };
     const merged = Object.assign(state, saved || {});
@@ -75,26 +75,28 @@ window.XQ.Levels = (() => {
     merged.levelStartCapturedRed = (Array.isArray(saved?.levelStartCapturedRed) ? saved.levelStartCapturedRed : merged.capturedRed).map((piece) => ({ ...piece }));
     merged.shop = merged.shop || null; merged.freeRefreshes = merged.freeRefreshes || 0;
     merged.enemyFrozen = merged.enemyFrozen || 0; merged.playerFrozen = merged.playerFrozen || 0;
-    merged.enemyTraits = merged.enemyTraits || {}; merged.enemyTurtle = merged.enemyTurtle || null; merged.enemyRabbit = merged.enemyRabbit || null; merged.enemyDivine = merged.enemyDivine || null; merged.enemyCollapse = merged.enemyCollapse || null; merged.enemyFish = merged.enemyFish || null; merged.enemyEunuch = Boolean(merged.enemyEunuch); merged.enemyHorse = merged.enemyHorse || 0; merged.collapseTiles = merged.collapseTiles || []; merged.hardNotice = merged.hardNotice || ""; merged.tempoNotice = Boolean(merged.tempoNotice); merged.tempoDeclined = Boolean(merged.tempoDeclined); merged.suppressedItemUids = merged.suppressedItemUids || []; merged.dropRefreshLocked = Boolean(merged.dropRefreshLocked);
+    merged.enemyTraits = merged.enemyTraits || {}; merged.enemyTurtle = merged.enemyTurtle || null; merged.enemyRabbit = merged.enemyRabbit || null; merged.enemyDivine = merged.enemyDivine || null; merged.enemyCollapse = merged.enemyCollapse || null; merged.enemyFish = merged.enemyFish || null; merged.enemyEunuch = Boolean(merged.enemyEunuch); merged.enemyHorse = merged.enemyHorse || 0; merged.enemyCharm = merged.enemyCharm || null; merged.enemyCorruption = merged.enemyCorruption || null; merged.enemyMusic = merged.enemyMusic || null; merged.enemyReinforcement = merged.enemyReinforcement || null; merged.enemyIncense = merged.enemyIncense || null; merged.enemySacrifice = merged.enemySacrifice || null; merged.charmTiles = merged.charmTiles || []; merged.incenseTiles = merged.incenseTiles || []; merged.collapseTiles = merged.collapseTiles || []; merged.hardNotice = merged.hardNotice || ""; merged.tempoNotice = Boolean(merged.tempoNotice); merged.tempoDeclined = Boolean(merged.tempoDeclined); merged.suppressedItemUids = merged.suppressedItemUids || []; merged.dropRefreshLocked = Boolean(merged.dropRefreshLocked); merged.currentComboId = merged.currentComboId || null;
     merged.baseReward = typeof merged.baseReward === "number" ? merged.baseReward : 100; merged.levelStartScore = typeof merged.levelStartScore === "number" ? merged.levelStartScore : merged.score || 0;
     merged.bestRecord = merged.bestRecord || { level: merged.level || 1, score: merged.score || 0 };
     merged.keepUids = merged.keepUids || [];
     merged.morphBought = Object.assign({ R: 0, N: 0, C: 0, S: 0, Q: 0 }, merged.morphBought || {});
     merged.morphs = Object.assign({}, merged.morphs || {});
-    merged.pendingRevive = merged.pendingRevive || null; merged.pendingDestroy = Boolean(merged.pendingDestroy); merged.pendingWeaken = merged.pendingWeaken || false; merged.pendingDonate = Boolean(merged.pendingDonate);
+    merged.pendingRevive = merged.pendingRevive || null; merged.pendingDestroy = Boolean(merged.pendingDestroy); merged.pendingWeaken = merged.pendingWeaken || false; merged.pendingDonate = Boolean(merged.pendingDonate); merged.charmMakeupCharges = Math.max(0, merged.charmMakeupCharges || 0);
     merged.settings = Object.assign({ captureStoryMode: "story", rebelDefeatStory: true, rebelEarlyDefeatStory: true }, merged.settings || {});
-    merged.captureStorySeen = Array.isArray(merged.captureStorySeen) ? merged.captureStorySeen : []; merged.postRescueStorySeen = Array.isArray(merged.postRescueStorySeen) ? merged.postRescueStorySeen : []; merged.rebelComboOrder = Array.isArray(merged.rebelComboOrder) ? merged.rebelComboOrder : [];
+    merged.captureStorySeen = Array.isArray(merged.captureStorySeen) ? merged.captureStorySeen : []; merged.postRescueStorySeen = Array.isArray(merged.postRescueStorySeen) ? merged.postRescueStorySeen : []; merged.rebelComboOrder = Array.isArray(merged.rebelComboOrder) ? merged.rebelComboOrder : []; merged.randomComboOrder = Array.isArray(merged.randomComboOrder) ? merged.randomComboOrder : [];
     merged.enemyBonusMoves = Math.min(2, Math.max(0, merged.enemyBonusMoves || 0)); merged.enemyMovesLeft = Math.max(0, merged.enemyMovesLeft || 0); merged.playerBonusMoves = Math.min(1, Math.max(0, merged.playerBonusMoves || 0)); merged.enemyMomentum = merged.enemyMomentum || null;
     merged.meteorPending = Boolean(merged.meteorPending); merged.meteorActive = Boolean(merged.meteorActive); merged.meteorPenaltyPending = Boolean(merged.meteorPenaltyPending); merged.enemyTurnSource = merged.enemyTurnSource || null;
+    merged.riverFlooded = Boolean(merged.riverFlooded); merged.battleInProgress = Boolean(merged.battleInProgress); delete merged.playerRiverDebt; delete merged.enemyRiverDebt;
     window.XQ.Meteor?.normalize?.(merged);
     window.XQ.Mode?.ensure?.(merged);
     window.XQ.Progression?.ensure?.(merged);
     window.XQ.Items?.normalize?.(merged);
+    window.XQ.Turtle?.sync?.(merged);
     return merged;
   }
-
   function startLevel(state) {
-    state.enemyTraits = window.XQ.EnemyTraits.roll(state); state.enemyTurtle = null; state.enemyRabbit = null; state.enemyDivine = null; state.enemyCollapse = null; state.enemyFish = null; state.enemyEunuch = false; state.enemyHorse = 0; state.enemyMomentum = null; state.collapseTiles = []; state.suppressedItemUids = [];
+    state.riverFlooded = false;
+    state.enemyTraits = window.XQ.EnemyTraits.roll(state); state.enemyTurtle = null; state.enemyRabbit = null; state.enemyDivine = null; state.enemyCollapse = null; state.enemyFish = null; state.enemyEunuch = false; state.enemyHorse = 0; state.enemyCharm = null; state.enemyCorruption = null; state.enemyMusic = null; state.enemyReinforcement = null; state.enemyIncense = null; state.enemySacrifice = null; state.enemyMomentum = null; state.charmTiles = []; state.incenseTiles = []; state.collapseTiles = []; state.suppressedItemUids = []; state.currentComboId = null;
     state.hardNotice = isHard(state.level) ? `第 ${state.level} 关为强敌关：黑方开局拥有${window.XQ.EnemyTraits.text(state.enemyTraits).replace(" · ", "") || "铁壁营"}。` : ""; window.XQ.Late?.startLevel?.(state);
     state.board = buildBoard(state.level, state);
     if (state.enemyEunuch) state.board.filter((p) => p.side === "b" && (p.id.startsWith("bP") || p.id.startsWith("bB"))).forEach((p) => { p.type = "A"; });
@@ -103,12 +105,12 @@ window.XQ.Levels = (() => {
     applyMorphs(state);
     window.XQ.KingGuard?.refreshDivine?.(state);
     state.side = "r";
-    state.selected = null; state.pendingRevive = null; state.pendingDestroy = false; state.pendingWeaken = false; state.pendingDonate = false; state.pendingMorph = null;
+    state.selected = null; state.previewSelected = null; state.pendingRevive = null; state.pendingDestroy = false; state.pendingWeaken = false; state.pendingDonate = false; state.pendingMorph = null;
     state.legal = [];
     state.phase = "play";
     state.lastMove = null;
     state.history = []; state.fieldItems = []; if (state.mode === "normal") state.capturedRed = []; state.shop = null; state.collapseTiles = state.collapseTiles || [];
-    state.enemyFrozen = 0; state.playerFrozen = 0; state.enemyBonusMoves = 0; state.enemyMovesLeft = 0; state.playerBonusMoves = 0; state.rabbitFootCooldown = 0; state.playerTurtle = null;
+    state.enemyFrozen = 0; state.playerFrozen = 0; state.enemyBonusMoves = 0; state.enemyMovesLeft = 0; state.playerBonusMoves = 0; state.rabbitFootCooldown = 0; state.playerTurtle = null; window.XQ.Turtle.sync(state);
     state.baseReward = 100; state.levelStartScore = state.score;
     state.lastSettlement = null;
     state.message = "";
@@ -141,12 +143,16 @@ window.XQ.Levels = (() => {
 
   function levelName(state) {
     const prefix = state.mode === "quick" ? "快速挑战" : `第 ${state.level} 关`;
-    if (isFullEnemy(state.level)) return `${prefix}${comboText(state)} · ${window.XQ.EnemyStages.name(state.level, C.blackAddOrder.length)}${window.XQ.EnemyTraits.text(state.enemyTraits)}`;
+    const flood = state.riverFlooded ? " · 河界汛期" : "";
+    if (isFullEnemy(state.level)) return `${prefix}${comboText(state)}${flood} · ${window.XQ.EnemyStages.name(state.level, C.blackAddOrder.length)}${window.XQ.EnemyTraits.text(state.enemyTraits)}`;
     const left = C.blackAddOrder.length - enemyCount(state.level);
-    return `${prefix}${comboText(state)} · ${isHard(state.level) ? "强敌" : "普通"} · 敌军缺 ${left} 子`;
+    return `${prefix}${comboText(state)}${flood} · ${isHard(state.level) ? "强敌" : "普通"} · 敌军缺 ${left} 子`;
   }
 
   function comboText(state) {
+    const extra = window.XQ.LateExtra?.name?.(state); if (extra) return ` · 组合技：${extra}`;
+    if (state.enemyCharm?.blade) return " · 组合技：媚骨蚀锋";
+    if (state.enemyCharm?.formation) return " · 组合技：媚阵";
     if (state.enemyTurtle) return " · 组合技：龟缩";
     if (state.enemyRabbit) return " · 组合技：兔阵";
     if (state.enemyDivine) return " · 组合技：神选";

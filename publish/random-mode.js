@@ -6,7 +6,7 @@ window.XQ.RandomMode = (() => {
   const SCORE_OUTER = new Set(["banner", "cannon", "mult"]);
   const SHOP_ALLOWED = new Set([
     "banner", "cannon", "mult", "supply", "shopFree", "kingGuard",
-    "pawnSpell", "revive", "letMove", "destroy", "donate", "morph", "meteor",
+    "pawnSpell", "revive", "letMove", "destroy", "donate", "morph", "meteor", "offboard", "riverFlood", "charmMakeup",
   ]);
 
   function is(state) {
@@ -20,7 +20,7 @@ window.XQ.RandomMode = (() => {
     state.randomRunReady = Boolean(state.randomRunReady);
     state.randomLevelStartPieces = clone(state.randomLevelStartPieces);
     state.randomOpeningItemUids = Array.isArray(state.randomOpeningItemUids) ? state.randomOpeningItemUids : [];
-    state.randomOpeningNoticePending = Boolean(state.randomOpeningNoticePending);
+    state.randomOpeningNoticePending = Boolean(state.randomOpeningNoticePending); window.XQ.ComboOrder.ensureRandom(state);
     ensureOpeningRules(state);
     return state;
   }
@@ -124,8 +124,8 @@ window.XQ.RandomMode = (() => {
       shopAllowed(item) && !used.has(item.id) && window.XQ.Items.canOffer(state, item, "shop")
     ));
     while (normal.length < 3 && pool.length) {
-      const index = Math.floor(Math.random() * pool.length);
-      const card = window.XQ.Items.makeCard(pool.splice(index, 1)[0], level);
+      const item = window.XQ.ItemRoll.pick(pool, window.XQ.ItemRoll.shopBonus);
+      const card = window.XQ.Items.makeCard(pool.splice(pool.indexOf(item), 1)[0], level);
       card.cost = shopCost(card, level, normal.length);
       normal.push(card);
     }
@@ -136,6 +136,7 @@ window.XQ.RandomMode = (() => {
     const cost = 140 + level * 24 + index * 55;
     if (card.id === "kingGuard") return 800;
     if (card.id === "meteor") return window.XQ.Meteor.cost(level);
+    if (card.id === "offboard") return 620 + level * 30;
     if (card.id === "shopFree") return 10;
     if (card.id === "supply") return Math.max(1, Math.floor((card.points || cost) / 2));
     return cost;

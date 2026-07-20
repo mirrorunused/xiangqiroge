@@ -6,7 +6,7 @@ window.XQ.Actions = (() => {
   const Ops = window.XQ.StateOps;
   const labels = C.labels.b;
 
-  function tempoNotice(state, render, save) {
+  function tempoNotice(state, render, save, next) {
     if (state.mode !== "normal") {
       state.tempoNotice = false;
       window.XQ.Mode.stripTempo(state);
@@ -29,6 +29,7 @@ window.XQ.Actions = (() => {
       UI.hideRewards();
       await save();
       render();
+      next?.();
     }, "locked");
     return true;
   }
@@ -148,13 +149,14 @@ window.XQ.Actions = (() => {
     return { targetType: card.targetType, cost: card.cost || 0, shopUid: card.shopUid, name: card.name, rarity: card.rarity, text: card.text };
   }
 
-  function hardNotice(state, render, save) {
+  function hardNotice(state, render, save, next) {
     if (!state.hardNotice) return false;
-    UI.showCards("敌军奇阵", state.hardNotice, [{ id: "ok", name: "迎战", rarity: "purple", text: "本关黑方开局携带额外道具。" }], async () => {
+    UI.showCards("关卡机制", state.hardNotice, [{ id: "ok", name: "迎战", rarity: "purple", text: "已了解本关特殊规则。" }], async () => {
       state.hardNotice = "";
       UI.hideRewards();
       await save();
       render();
+      next?.();
     }, "locked");
     return true;
   }

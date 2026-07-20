@@ -14,7 +14,10 @@ window.XQ.Drops = (() => {
     const cells = [];
     for (let y = 0; y < 10; y += 1) {
       for (let x = 0; x < 9; x += 1) {
-        if (!R.at(state.board, x, y) && !state.fieldItems.some((i) => i.x === x && i.y === y) && !state.collapseTiles?.some((i) => i.x === x && i.y === y)) {
+        if (!R.at(state.board, x, y) && !state.fieldItems.some((i) => i.x === x && i.y === y)
+          && !state.collapseTiles?.some((i) => i.x === x && i.y === y)
+          && !state.charmTiles?.some((i) => i.x === x && i.y === y)
+          && !state.incenseTiles?.some((i) => i.x === x && i.y === y)) {
           cells.push({ x, y });
         }
       }

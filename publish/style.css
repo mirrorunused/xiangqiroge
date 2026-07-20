@@ -126,6 +126,7 @@ h1 {
   background: #d9a75f;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
   touch-action: none;
+  isolation: isolate;
 }
 
 .board::before {
@@ -135,6 +136,7 @@ h1 {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 900'%3E%3Cpath d='M0 0H800M0 100H800M0 200H800M0 300H800M0 400H800M0 500H800M0 600H800M0 700H800M0 800H800M0 900H800M0 0V900M100 0V900M200 0V900M300 0V900M400 0V900M500 0V900M600 0V900M700 0V900M800 0V900M300 0L500 200M500 0L300 200M300 700L500 900M500 700L300 900' stroke='%232a1a12' stroke-width='2'/%3E%3C/svg%3E");
   background-size: 100% 100%;
   pointer-events: none;
+  z-index: 0;
 }
 
 .river {
@@ -149,6 +151,7 @@ h1 {
   font-size: 22px;
   font-weight: 800;
   pointer-events: none;
+  z-index: 1;
 }
 
 .cell {
@@ -159,6 +162,7 @@ h1 {
   display: grid;
   place-items: center;
   border-radius: 50%;
+  z-index: 2;
 }
 
 .cell.hint {
@@ -219,23 +223,7 @@ h1 {
   font-weight: 900;
   pointer-events: none;
   box-shadow: 0 0 12px rgba(247, 224, 120, 0.55);
-}
-
-.collapse-tile {
-  position: absolute;
-  width: 9%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  display: grid;
-  place-items: center;
-  border: 2px solid #151a1f;
-  border-radius: 4px;
-  background: #74302d;
-  color: #f7e078;
-  font-size: clamp(12px, 3.4vw, 19px);
-  font-weight: 900;
-  pointer-events: none;
-  box-shadow: 0 0 14px rgba(116, 48, 45, 0.72);
+  z-index: 2;
 }
 
 .banner {
