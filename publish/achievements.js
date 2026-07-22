@@ -21,12 +21,20 @@ window.XQ.Achievements = (() => {
     ["queen", "后仪临阵", "完成第二次征程结算", "开放皇后改制购买"],
     ["rebelRescue", "破狱救援", "义军破敌推进至组合技阶段", "解锁关押剧情与义军兵败剧情图鉴"],
   ];
+  const SCORE_THRESHOLDS = [5000, 10000, 20000, 50000, 100000];
+  const SCORE = SCORE_THRESHOLDS.map((threshold, index) => [
+    `score-${threshold}`,
+    `积金累玉·${chineseNumber(index + 1)}`,
+    threshold,
+    Math.round(threshold * 0.1),
+  ]);
 
   function ensure(state) {
     const talents = state.talents || (state.talents = {});
     talents.shopUnlocks = talents.shopUnlocks || {};
     const data = talents.achievements || (talents.achievements = { completed: {} });
     data.completed = data.completed || {};
+    data.scoreRewards = data.scoreRewards || {};
     migrate(state, data.completed);
     return data;
   }
@@ -66,11 +74,15 @@ window.XQ.Achievements = (() => {
   }
 
   function cards(state) {
+    checkScore(state);
     const completed = ensure(state).completed;
     return EXTRA.map(([id, name, condition, reward]) => card(id, name, condition, reward, completed[id]))
+      .concat(SCORE.map(([id, name, threshold, reward]) => card(
+        id, name, `积分达到 ${threshold.toLocaleString("zh-CN")}`, `${reward.toLocaleString("zh-CN")} 积分`, completed[id],
+      )))
       .concat(window.XQ.ComboOrder.fixedIds().map((id) => card(
         `combo-${id}`, `破阵·${COMBOS[id]}`, `义军破敌通关组合技“${COMBOS[id]}”`,
-        REWARDS[id] ? `解锁${REWARDS[id][1]}` : "记录组合技通关",
+        REWARDS[id] ? `解锁${REWARDS[id][1]}` : "",
         completed[`combo-${id}`],
       )));
   }
@@ -84,6 +96,23 @@ window.XQ.Achievements = (() => {
   function progress(state) {
     const list = cards(state);
     return { done: list.filter((entry) => entry.done).length, total: list.length };
+  }
+
+  function checkScore(state) {
+    const data = ensure(state);
+    let score = Math.max(0, Number(state.score) || 0);
+    return SCORE.flatMap(([id, name, threshold, reward]) => {
+      if (score < threshold && !data.completed[id]) return [];
+      const newlyCompleted = !data.completed[id];
+      if (newlyCompleted) data.completed[id] = Date.now();
+      if (data.scoreRewards[id]) return newlyCompleted ? [`成就完成：${name}。`] : [];
+      data.scoreRewards[id] = Date.now();
+      score += reward;
+      state.score = score;
+      return [newlyCompleted
+        ? `成就完成：${name}。奖励积分 +${reward.toLocaleString("zh-CN")}。`
+        : `成就奖励补发：${name}，积分 +${reward.toLocaleString("zh-CN")}。`];
+    });
   }
 
   function mark(state, id, name) {
@@ -123,12 +152,21 @@ window.XQ.Achievements = (() => {
     return EXTRA.find((entry) => entry[0] === id)?.[3] || "成就记录";
   }
 
+  function chineseNumber(value) {
+    const digits = "零一二三四五六七八九";
+    if (value < 10) return digits[value];
+    if (value === 10) return "十";
+    if (value < 20) return `十${digits[value % 10]}`;
+    if (value < 100) return `${digits[Math.floor(value / 10)]}十${value % 10 ? digits[value % 10] : ""}`;
+    return String(value);
+  }
+
   function card(id, name, condition, reward, done) {
     return {
       id, name: `${done ? "[已完成]" : "[未完成]"} ${name}`, rarity: done ? "gold" : "white",
-      text: `${condition}。奖励：${reward}。`, done: Boolean(done),
+      text: reward ? `${condition}。奖励：${reward}。` : `${condition}。`, done: Boolean(done),
     };
   }
 
-  return { cards, complete, completeCombo, ensure, open, progress };
+  return { cards, checkScore, complete, completeCombo, ensure, open, progress };
 })();

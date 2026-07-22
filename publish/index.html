@@ -11,22 +11,25 @@
       console.warn("early loading event failed:", err.message);
     }
   </script>
-  <link rel="stylesheet" href="./style.css?v=20260720-1">
+  <link rel="stylesheet" href="./style.css?v=20260722-2">
   <link rel="stylesheet" href="./title.css?v=20260716-3">
-  <link rel="stylesheet" href="./story.css?v=20260716-1">
-  <link rel="stylesheet" href="./board-fixes.css?v=20260720-6">
-  <link rel="stylesheet" href="./controls.css?v=20260718-4">
+  <link rel="stylesheet" href="./story.css?v=20260721-1">
+  <link rel="stylesheet" href="./board-fixes.css?v=20260722-12">
+  <link rel="stylesheet" href="./controls.css?v=20260722-5">
   <link rel="stylesheet" href="./combat-feedback.css">
   <link rel="stylesheet" href="./charm.css?v=20260720-1">
   <link rel="stylesheet" href="./incense.css?v=20260720-2">
   <link rel="stylesheet" href="./music-charm.css?v=20260720-1">
   <link rel="stylesheet" href="./shooter.css?v=20260720-1">
+  <link rel="stylesheet" href="./theme-preview.css?v=20260722-2">
+  <link rel="stylesheet" href="./audio.css?v=20260722-8">
 </head>
 <body>
   <section id="startScreen" class="start-screen hidden">
     <div class="start-panel">
+      <button id="menuMusicBtn" class="music-toggle menu-music-toggle" type="button" aria-label="关闭背景音乐" aria-pressed="false" title="关闭背景音乐">♫</button>
       <h2 id="startTitle">兴军讨曌</h2>
-      <p id="gameVersion" class="game-version">v1.2.5</p>
+      <p id="gameVersion" class="game-version">v1.2.7</p>
       <p id="startSummary" class="start-summary">第 1 关 · 0 积分</p>
       <p id="recordSummary" class="record-summary">常规最高：第 1 关/0 分 · 义军最高：第 1 关/0 分</p>
       <div class="start-actions">
@@ -38,6 +41,7 @@
         <button id="startTalentBtn">局外天赋</button>
         <button id="startAchievementsBtn">成就</button>
         <button id="startCodexBtn" class="hidden">道具图鉴</button>
+        <button id="startGalleryBtn">剧情画廊</button>
         <button id="startSettingsBtn">设置</button>
         <button id="startTestBtn" class="start-test-btn hidden">测试入口</button>
       </div>
@@ -54,7 +58,11 @@
         <h1 id="gameTitle">兴军讨曌</h1>
         <p id="levelText">第 1 关 · 敌军残阵</p>
       </div>
-      <button id="restartBtn" class="icon-btn" aria-label="重开本关卡">↻</button>
+      <div class="topbar-actions">
+        <button id="battleMusicBtn" class="icon-btn music-toggle" type="button" aria-label="关闭背景音乐" aria-pressed="false" title="关闭背景音乐">♫</button>
+        <button id="uiSwitchBtn" class="icon-btn ui-switch-btn hidden" type="button" title="切换界面" aria-label="切换界面">▦</button>
+        <button id="restartBtn" class="icon-btn" aria-label="重开本关卡">↻</button>
+      </div>
     </section>
 
     <section class="stats" aria-label="战局信息">
@@ -104,11 +112,38 @@
     </section>
   </main>
 
+  <div id="musicLoadingStatus" class="music-loading-status hidden" role="status" aria-live="polite">
+    <div class="music-loading-copy">
+      <span id="musicLoadingText">音乐后台加载</span>
+      <strong id="musicLoadingValue">0%</strong>
+    </div>
+    <div id="musicLoadingTrack" class="music-loading-track" role="progressbar" aria-label="音乐资源加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <span id="musicLoadingBar" class="music-loading-bar"></span>
+    </div>
+  </div>
+
   <section id="rewardModal" class="modal hidden" aria-modal="true">
     <div class="reward-box">
       <button id="modalCloseBtn" class="modal-close" aria-label="关闭">×</button>
       <h2>战斗胜利</h2>
       <p id="rewardIntro">选择一个奖励继续进军。</p>
+      <div id="audioSettingsPanel" class="audio-settings hidden" aria-label="音量设置">
+        <div class="audio-setting">
+          <label for="masterVolume">全局音量</label>
+          <input id="masterVolume" type="range" min="0" max="150" step="1" value="100">
+          <output id="masterVolumeValue" for="masterVolume">100%</output>
+        </div>
+        <div class="audio-setting">
+          <label for="musicVolume">背景音乐</label>
+          <input id="musicVolume" type="range" min="0" max="150" step="1" value="100">
+          <output id="musicVolumeValue" for="musicVolume">100%</output>
+        </div>
+        <div class="audio-setting">
+          <label for="voiceVolume">剧情语音</label>
+          <input id="voiceVolume" type="range" min="0" max="150" step="1" value="100">
+          <output id="voiceVolumeValue" for="voiceVolume">100%</output>
+        </div>
+      </div>
       <div id="rewardCards" class="reward-cards"></div>
     </div>
   </section>
@@ -138,6 +173,10 @@
         <p id="captureEyebrow" class="capture-eyebrow">俘获录</p>
         <h2 id="captureTitle">俘获剧情</h2>
         <p id="captureText" class="capture-text"></p>
+        <div class="capture-voice-row">
+          <button id="captureVoiceBtn" type="button" aria-pressed="false">▶ 朗读</button>
+          <span id="captureVoiceStatus" aria-live="polite">离线语音</span>
+        </div>
         <div id="captureNav" class="capture-nav hidden">
           <button id="capturePrevBtn" type="button" aria-label="上一则">←</button>
           <span id="captureIndex"></span>
@@ -166,6 +205,19 @@
     </div>
   </section>
 
-  <script src="./game-1.2.5.js?v=20260720-4"></script>
+  <script src="./music-loader.js?v=20260722-1"></script>
+  <script src="./audio-manager.js?v=20260722-10"></script>
+  <script src="./combo-intro.js?v=20260722-2"></script>
+  <script src="./preview-patches.js?v=20260722-5"></script>
+  <script src="./shop-slot-patch.js?v=20260722-1"></script>
+  <script src="./board-layout.js?v=20260722-2"></script>
+  <script src="./fx.js?v=20260722-1"></script>
+  <script src="./story-voice.js?v=20260722-4"></script>
+  <script src="./game-1.2.7.js?v=20260722-1"></script>
+  <script src="./consumable-state.js?v=20260722-1"></script>
+  <script src="./corruption.js?v=20260722-1"></script>
+  <script src="./items.js?v=20260722-1"></script>
+  <script src="./shopstate.js?v=20260722-1"></script>
+  <script src="./item-menu.js?v=20260722-2"></script>
 </body>
 </html>

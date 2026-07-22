@@ -9,7 +9,7 @@ window.XQ.Items = (() => {
   }
   function uid() { return `i${Date.now()}${Math.random().toString(16).slice(2)}`; }
   function normalize(state) {
-    state.items = (state.items || []).filter((item) => item.id !== "supply").map((item) => item.uid ? item : { ...item, uid: uid() });
+    state.items = (state.items || []).map((item) => item.uid ? item : { ...item, uid: uid() }); window.XQ.ConsumableState.normalize(state);
     state.talents = Object.assign({ retain: 0, outerItems: [] }, state.talents || {});
     state.talents.outerItems = state.talents.outerItems || [];
     window.XQ.Progression?.ensure?.(state);
@@ -76,11 +76,23 @@ window.XQ.Items = (() => {
     const points = 240 + level * 40;
     return { id: "letMove", name: "让你一招", rarity: "gold", text: `立即获得 ${points} 积分，黑方下次额外行动一回合。`, cost: 0, points };
   }
-  function tacticCard(level, state) { return [rand([donateCard(state), letMoveCard(level)].filter(Boolean))]; }
-
+  function reviveCard(level, state) {
+    if (!["rebel", "random"].includes(state.mode) || !(state.capturedRed || []).length) return null;
+    const item = C.randomItems.find((entry) => entry.id === "revive");
+    const card = makeCard(item, level);
+    card.cost = 140 + level * 24 + 55;
+    return card;
+  }
+  function tacticCard(level, state) {
+    return [{ ...rand([donateCard(state), letMoveCard(level), reviveCard(level, state)].filter(Boolean)), sharedSlot: true }];
+  }
   function shop(level, state) {
     const normal = [];
-    while (normal.length < 3) normal.push(randomCard(level, state, normal.map((item) => item.id), "shop"));
+    while (normal.length < 3) {
+      const excluded = normal.map((item) => item.id);
+      if (["rebel", "random"].includes(state.mode)) excluded.push("revive");
+      normal.push(randomCard(level, state, excluded, "shop"));
+    }
     normal.forEach((card, index) => {
       const cost = 140 + level * 24 + index * 55;
       const double = ["rookPhoenix", "rabbitFoot", "turtleShell", "advisorStride"].includes(card.id);
@@ -92,34 +104,26 @@ window.XQ.Items = (() => {
   function pushItem(state, card) {
     state.items.push({ id: card.id, uid: uid(), name: card.name, rarity: card.rarity || "white", text: card.text, value: card.value, level: state.level });
   }
-
   function apply(state, card) {
-    if (card.id === "supply") {
-      state.score += card.points || 0;
-      return card.points || 0;
-    }
-    if (card.id === "shopFree") { state.freeRefreshes = (state.freeRefreshes || 0) + 3; return 0; }
+    if (card.id === "supply") { state.score += card.points || 0; return card.points || 0; }
+    if (card.id === "shopFree") { window.XQ.ConsumableState.grant(state, card, pushItem); return 0; }
     if (card.id === "pawnSpell") return 0;
     if (card.id === "mult") return window.XQ.ItemMult.apply(state, card, pushItem);
     pushItem(state, card);
     return 0;
   }
-
   function buy(state, card) {
     if (state.score < card.cost) return false;
     if (!canOffer(state, card, "shop")) return false;
     state.score -= card.cost;
-    if (card.id === "supply") {
-      state.score += card.points || 0;
-      return true;
-    }
-    if (card.id === "shopFree") { state.freeRefreshes = (state.freeRefreshes || 0) + 3; return true; }
+    if (card.id === "supply") { state.score += card.points || 0; return true; }
+    if (card.id === "shopFree") return window.XQ.ConsumableState.grant(state, card, pushItem);
     if (card.id === "letMove") { state.score += card.points || 0; state.playerFrozen = (state.playerFrozen || 0) + 1; return true; }
     if (card.id === "meteor") return window.XQ.Meteor.arm(state);
-    if (card.id === "charmMakeup") return window.XQ.Corruption.armMakeup(state);
+    if (card.id === "charmMakeup") return window.XQ.Corruption.armMakeup(state) && (pushItem(state, { ...card, value: 1 }), true);
     if (card.id === "offboard") return true;
     if (card.id === "riverFlood") { state.riverFlooded = true; return true; }
-    if (card.id === "pawnSpell" || card.id === "destroy" || card.id === "donate" || card.id === "morph") return true;
+    if (window.XQ.ConsumableState.isImmediate(card.id)) return true;
     pushItem(state, card);
     return true;
   }
@@ -130,37 +134,32 @@ window.XQ.Items = (() => {
     if (state.suppressedItemUids?.includes(uid)) return 0;
     if (state.items[index].id.startsWith("morph-") || state.items[index].randomLocked) return 0;
     const [item] = state.items.splice(index, 1);
+    window.XQ.ConsumableState.onSell(state, item);
     state.keepUids = state.keepUids.filter((id) => id !== uid);
     const value = sellValue(item);
     state.score += value;
     return value;
   }
-
   function sellValue(item) { return ({ white: 60, green: 100, purple: 170, gold: 260, red: 420 })[item.rarity || "white"] || 60; }
   function talent(state) {
     const next = (state.talents?.retain || 0) + 1;
     return { id: "retain", name: `传承锦囊 ${next}`, rarity: next >= 3 ? "gold" : "purple", text: `新征程最多保留 ${next} 个已获道具。`, cost: 420 + next * 260 };
   }
-
   function outerCards(level, state) {
     return window.XQ.OuterItems.cards(level, state, C, canOffer);
   }
-
   function buyTalent(state, card) {
     return window.XQ.OuterItems.buy(state, card, uid, canOffer, normalize);
   }
-
   function count(state, id) {
     normalize(state);
     return (window.XQ.Late?.activeItems?.(state) || state.items).filter((i) => i.id === id).length;
   }
-
   function ownedCount(state, id) {
     const local = state.items.filter((i) => i.id === id).length;
     const outer = state.talents.outerItems.filter((i) => i.id === id).length;
     return local + outer;
   }
-
   function canOffer(state, item, source = "reward") {
     const id = item.baseId || item.id;
     if (!state) return item.stacks !== false;
@@ -178,14 +177,12 @@ window.XQ.Items = (() => {
     if (item.requires && ownedCount(state, item.requires) === 0) return false;
     return item.stacks !== false || ownedCount(state, id) === 0;
   }
-
   function captureScore(state, type) {
     normalize(state);
     const base = C.values[type] || 0;
     const tactical = ["R", "N", "C"].includes(type) ? count(state, "cannon") : 0;
     return Math.round(base * (1 + tactical * 0.12));
   }
-
   function addTempo(state) {
     normalize(state);
     if (state.mode !== "normal") return false;
@@ -193,8 +190,6 @@ window.XQ.Items = (() => {
     pushItem(state, { id: "tempo", name: "双步虎符", rarity: "red", text: "每回合红方可走两步，累计 25 道具后失效。", value: 1 });
     return true;
   }
-
   function hintCost(state) { return Math.max(5, Math.round((30 + Math.max(0, (state.level || 1) - 1) * 5) * Math.pow(0.8, count(state, "oracle")))); }
-
   return { addTempo, apply, buy, buyTalent, canOffer, captureScore, count, hintCost, makeCard, normalize, outerCards, roll, sell, shop, talent };
 })();

@@ -4,10 +4,17 @@ window.XQ.RunEnd = (() => {
   const UI = window.XQ.Render;
   const Store = window.XQ.Storage;
 
+  async function persist(state, userMessage) {
+    const ok = await Store.flush(state, (message) => UI.banner(message));
+    if (ok) return true;
+    const error = new Error("战败进度写入失败");
+    error.userMessage = userMessage;
+    throw error;
+  }
+
   async function fail(state, restart) {
     const unlocked = window.XQ.Progression.failRun(state);
-    const ok = await Store.flush(state, (message) => UI.banner(message));
-    if (!ok) UI.banner("战败进度本地备份失败，请稍后重试");
+    await persist(state, "战败进度保存失败，已恢复到结算前状态，请稍后重试");
     if (shouldShowEarlyStory(state)) await window.XQ.CaptureStory.showRebelEarlyDefeat();
     else if (shouldShowRebelStory(state)) await window.XQ.CaptureStory.showRebelDefeat();
     draw(state, unlocked, restart);
@@ -28,7 +35,7 @@ window.XQ.RunEnd = (() => {
       if (!card.uid || limit <= 0) return;
       const toggled = window.XQ.StateOps.toggleKeep(state, card.uid);
       if (toggled !== true) return UI.banner(toggled);
-      await Store.flush(state, (message) => UI.banner(message));
+      await persist(state, "保存失败，已撤销本次保留选择，请稍后重试");
       draw(state, unlocked, restart);
     }, "locked");
     addConfirm(state, restart);
@@ -58,9 +65,11 @@ window.XQ.RunEnd = (() => {
       confirm.disabled = true;
       try {
         UI.hideRewards();
-        await restart();
+        await window.XQ.StateOps.transact(state, restart);
       } catch (err) {
         console.error("restart failed:", err?.code || "unknown", err?.message, err?.stack || "");
+        document.getElementById("rewardModal")?.classList.remove("hidden");
+        UI.banner(window.XQ.StateOps.actionError(err, "重开失败，已恢复战败结算状态，请重试"));
         confirm.disabled = false;
       }
     });

@@ -12,6 +12,10 @@ window.XQ.FX = (() => {
   }
 
   function tone(freq, ms) {
+    if (window.XQ.AudioManager?.effectTone) {
+      window.XQ.AudioManager.effectTone(freq, ms);
+      return;
+    }
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       const osc = audioCtx.createOscillator();
@@ -26,5 +30,5 @@ window.XQ.FX = (() => {
     }
   }
 
-  return { loading, tone };
+  return { loading, tone, volumeAware: true };
 })();

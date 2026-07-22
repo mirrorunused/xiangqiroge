@@ -1,7 +1,7 @@
 window.XQ = window.XQ || {};
 
 window.XQ.Config = {
-  version: "1.2.5",
+  version: "1.2.7",
   files: 9,
   ranks: 10,
   labels: {

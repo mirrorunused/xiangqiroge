@@ -3,11 +3,12 @@ window.XQ = window.XQ || {};
 window.XQ.ItemMenu = (() => {
   const modes = [
     { id: "acquired", label: "获得顺序" },
+    { id: "consumable", label: "消耗品优先" },
     { id: "rarity", label: "稀有度" },
     { id: "blocked", label: "屏蔽优先" },
   ];
   let sortMode = "acquired";
-  const directions = { acquired: "asc", rarity: "asc", blocked: "asc" };
+  const directions = { acquired: "asc", consumable: "asc", rarity: "asc", blocked: "asc" };
 
   function sort(items, state, mode = sortMode, direction = directions[mode] || "asc") {
     const blocked = new Set(state.suppressedItemUids || []);
@@ -18,6 +19,11 @@ window.XQ.ItemMenu = (() => {
         const rank = rarity.indexOf(right.item.rarity) - rarity.indexOf(left.item.rarity);
         if (rank) return rank * factor;
       }
+      if (mode === "consumable") {
+        const ids = window.XQ.Config.consumableIds || [];
+        const priority = Number(ids.includes(right.item.id)) - Number(ids.includes(left.item.id));
+        if (priority) return priority * factor;
+      }
       if (mode === "blocked") {
         const priority = Number(blocked.has(right.item.uid)) - Number(blocked.has(left.item.uid));
         if (priority) return priority * factor;
@@ -27,6 +33,7 @@ window.XQ.ItemMenu = (() => {
   }
 
   function show(state, done, persist) {
+    window.XQ.Items.normalize(state);
     const limit = state.talents?.retain || 0;
     const items = state.items.concat((state.talents.outerItems || []).map((item) => ({ ...item, outer: true })));
     const cards = items.length ? sort(items, state).map((item) => itemCard(state, item)) : [emptyCard()];
@@ -65,7 +72,7 @@ window.XQ.ItemMenu = (() => {
     return {
       ...item,
       name: `${blocked ? "[屏蔽] " : ""}${turtle?.name || ""}${kept ? "[保留] " : ""}${opening ? "[初始] " : ""}${randomActive ? "[生效] " : randomOuter ? "[停用] " : activeOuter ? "[带入] " : item.outer ? "[局外] " : ""}${item.name}`,
-      text: blocked ? `${item.text} 本关效果被屏蔽，暂不可出售。` : opening ? `${item.text} 本轮初始道具，不可出售。` : randomOuter && !randomActive ? `${item.text} 随机棋模式仅启用积分加成类局外道具。` : `${item.text}${turtle?.text || ""}`,
+      text: blocked ? `${item.text} 本关效果被屏蔽，暂不可出售。` : opening ? `${item.text} 本轮初始道具，不可出售。` : randomOuter && !randomActive ? `${item.text} 随机棋模式仅启用积分加成类局外道具。` : `${item.text}${turtle?.text || ""}${window.XQ.ConsumableState.status(item)}`,
       actions: blocked || opening || item.outer || item.id.startsWith("morph-") ? [] : [{ id: "sell", label: "出售" }],
     };
   }

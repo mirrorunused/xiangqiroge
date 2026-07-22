@@ -8,8 +8,10 @@ window.XQ.Menus = (() => {
 
   async function persist(state) {
     const ok = await Store.flush(state, (message) => UI.banner(message));
-    if (!ok) UI.banner("关键进度未能写入本地备份，请稍后重试");
-    return ok;
+    if (ok) return true;
+    const error = new Error("关键进度写入失败");
+    error.userMessage = "保存失败，已撤销本次卡牌操作，请稍后重试";
+    throw error;
   }
 
   async function shop(state, done, activate) {

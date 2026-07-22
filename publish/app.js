@@ -20,12 +20,13 @@ window.XQ = window.XQ || {};
     };
     UI.update(state, { piece: battle?.onPiece, move: battle?.onMove, busy: runtime?.busy() });
   }
+  function announceScoreAchievements() { const unlocked = window.XQ.Achievements.checkScore(state); if (unlocked.length) UI.banner(unlocked.join(" ")); }
   function saveSoon() {
-    window.XQ.Mode.updateRecord(state);
+    announceScoreAchievements(); window.XQ.Mode.updateRecord(state);
     return runtime.queue();
   }
   function saveNow() {
-    window.XQ.Mode.updateRecord(state);
+    announceScoreAchievements(); window.XQ.Mode.updateRecord(state);
     return runtime.flush();
   }
   async function win(text) {
@@ -82,7 +83,6 @@ window.XQ = window.XQ || {};
     render();
     await saveNow();
   }
-
   async function showHint() {
     const cost = window.XQ.Items.hintCost(state);
     if (state.score < cost) return UI.banner("积分不足，无法提示");

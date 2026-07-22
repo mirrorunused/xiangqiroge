@@ -87,7 +87,9 @@ window.XQ.AppSupport = {
         normal: openNormal, rebel: openRebel, random: openRandom, quick: openQuick, load: options.manualLoad,
         talent: () => Menus.talent(state(), () => Pre.refresh(state()), { mainMenu: true }),
         achievements: () => window.XQ.Achievements.open(state()),
-        codex: () => window.XQ.ItemCodex.open(state()), settings: options.settings,
+        codex: () => window.XQ.ItemCodex.open(state()),
+        gallery: () => window.XQ.StoryGallery.open(state()),
+        settings: options.settings,
         test: () => window.XQ.ComboNav.openTest(state(), { jump, grant }),
       };
     }

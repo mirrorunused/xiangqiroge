@@ -21,7 +21,7 @@ window.XQ.ShopState = (() => {
     const free = consumesFreeRefresh(state);
     const cost = free ? 0 : baseRefreshCost(state);
     if (state.score < cost) return false;
-    if (free) state.freeRefreshes -= 1;
+    if (free) window.XQ.ConsumableState.consume(state, "shopFree");
     else { state.score -= cost; state.shop.refreshCount += 1; }
     state.shop.cards = tag(I.shop(state.level, state));
     return true;
@@ -34,7 +34,7 @@ window.XQ.ShopState = (() => {
 
   function consumesFreeRefresh(state) {
     prepare(state);
-    return baseRefreshCost(state) > 0 && (state.freeRefreshes || 0) > 0;
+    return baseRefreshCost(state) > 0 && window.XQ.ConsumableState.hasActive(state, "shopFree");
   }
 
   function remove(state, card) {

@@ -90,6 +90,29 @@ window.XQ.StateOps = (() => {
     return true;
   }
 
+  function copyState(state) {
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  function restoreState(state, snapshot) {
+    Object.keys(state).forEach((key) => delete state[key]);
+    Object.assign(state, copyState(snapshot));
+  }
+
+  function actionError(error, fallback = "操作失败，已恢复到操作前状态，请重试") {
+    return error?.userMessage || fallback;
+  }
+
+  async function transact(state, action) {
+    const snapshot = copyState(state);
+    try {
+      return await action();
+    } catch (error) {
+      restoreState(state, snapshot);
+      throw error;
+    }
+  }
+
   function retainedItems(items) {
     const result = [];
     let multIndex = -1;
@@ -135,5 +158,8 @@ window.XQ.StateOps = (() => {
     return (pieces || []).map((piece) => ({ ...piece }));
   }
 
-  return { beginLevel, newRun, restartLevel, restore, snapshot, toggleKeep };
+  return {
+    actionError, beginLevel, copyState, newRun, restartLevel,
+    restore, restoreState, snapshot, toggleKeep, transact,
+  };
 })();

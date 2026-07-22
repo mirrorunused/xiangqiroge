@@ -44,7 +44,7 @@ window.XQ.Corruption = (() => {
     if (!(state.charmMakeupCharges > 0)) return "";
     const piece = state.board.find((entry) => entry.id === pieceId);
     if (!piece || piece.side !== "b") return "";
-    state.charmMakeupCharges -= 1;
+    if (!window.XQ.ConsumableState.consume(state, "charmMakeup")) return "";
     piece.side = "r";
     return `媚妆生效：吃子的黑${label("b", piece.type)}转投红方`;
   }

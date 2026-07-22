@@ -2,18 +2,6 @@
   position: relative;
 }
 
-@supports (width: 1cqw) {
-  .board-wrap {
-    container-type: size;
-  }
-
-  .board {
-    width: min(100cqw, 90cqh, 468px);
-    height: min(111.111cqw, 100cqh, 520px);
-    max-width: none;
-  }
-}
-
 .command-panel button {
   min-height: 44px;
 }
@@ -27,6 +15,10 @@
   border: 1px solid rgba(246, 239, 227, 0.2);
   border-radius: 8px;
   background: rgba(16, 22, 27, 0.72);
+}
+
+#itemSortControls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .item-sort-controls button {

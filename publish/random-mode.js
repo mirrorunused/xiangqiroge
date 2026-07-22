@@ -117,11 +117,11 @@ window.XQ.RandomMode = (() => {
     const allowed = cards.filter((card) => (
       shopAllowed(card) && (card.id !== "destroy" || Math.random() < DESTROY_SHOP_CHANCE)
     ));
-    const normal = allowed.filter((card) => itemIds.has(card.id));
-    const extras = allowed.filter((card) => !itemIds.has(card.id));
+    const normal = allowed.filter((card) => itemIds.has(card.id) && !card.sharedSlot);
+    const extras = allowed.filter((card) => !itemIds.has(card.id) || card.sharedSlot);
     const used = new Set(normal.map((card) => card.id));
     const pool = window.XQ.Config.randomItems.filter((item) => (
-      shopAllowed(item) && !used.has(item.id) && window.XQ.Items.canOffer(state, item, "shop")
+      item.id !== "revive" && shopAllowed(item) && !used.has(item.id) && window.XQ.Items.canOffer(state, item, "shop")
     ));
     while (normal.length < 3 && pool.length) {
       const item = window.XQ.ItemRoll.pick(pool, window.XQ.ItemRoll.shopBonus);

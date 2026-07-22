@@ -1,7 +1,6 @@
 window.XQ = window.XQ || {};
 window.XQ.Render = (() => {
-  const C = window.XQ.Config; const $ = (id) => document.getElementById(id);
-  const els = {}; let currentState = null;
+  const C = window.XQ.Config; const $ = (id) => document.getElementById(id); const els = {}; let currentState = null; let currentHandlers = {};
   function init() {
     ["board", "gameTitle", "levelText", "scoreText", "multText", "itemText", "tempoText",
       "turnText", "tipText", "banner", "rewardModal", "rewardCards",
@@ -12,8 +11,7 @@ window.XQ.Render = (() => {
     els.levelText.title = "点击查看本关详情"; els.levelText.style.cursor = "pointer";
   }
   function pos(el, x, y) {
-    el.style.left = `${5.5 + (x / 8) * 89}%`;
-    el.style.top = `${5 + (y / 9) * 90}%`;
+    el.style.left = `${5.5 + (x / 8) * 89}%`; el.style.top = `${5 + (y / 9) * 90}%`;
   }
   function drawBoard(state, handlers) {
     els.board.classList.toggle("river-flooded", Boolean(state.riverFlooded)); els.board.innerHTML = state.riverFlooded ? '<div class="river flooded"><span>楚河　　汉界</span><small>跨河先停线</small></div>' : '<div class="river"><span>楚河　　汉界</span></div>';
@@ -66,7 +64,7 @@ window.XQ.Render = (() => {
     });
   }
   function update(state, handlers) {
-    currentState = state;
+    currentState = state; currentHandlers = handlers; window.XQ.AudioManager?.bindState?.(state);
     const busy = Boolean(handlers.busy); const placing = window.XQ.RandomPlacement.active(state);
     document.querySelector(".command-panel").classList.toggle("placing", placing);
     drawBoard(state, handlers);
@@ -99,8 +97,7 @@ window.XQ.Render = (() => {
     window.XQ.RandomPlacement.render(state);
   }
   function hasKingGuard(state, side) {
-    if (side === "b") return Boolean(state.enemyTraits?.kingGuard);
-    return (state.items || []).some((item) => item.id === "kingGuard");
+    return side === "b" ? Boolean(state.enemyTraits?.kingGuard) : (state.items || []).some((item) => item.id === "kingGuard");
   }
   function makeTip(state) {
     if (window.XQ.RandomPlacement.active(state)) return "选择待布置棋子，再点击己方半场空位；点击已摆棋子可撤回。";
@@ -121,10 +118,9 @@ window.XQ.Render = (() => {
     els.banner.classList.remove("hidden");
     setTimeout(() => els.banner.classList.add("hidden"), 1300);
   }
-  function rewards(cards, onPick, intro) {
-    showCards("战斗胜利", intro || "选择一个奖励继续进军。", cards, onPick, "reward");
-  }
+  function rewards(cards, onPick, intro) { showCards("战斗胜利", intro || "选择一个奖励继续进军。", cards, onPick, "reward"); }
   function showCards(title, intro, cards, onPick, mode) {
+    els.rewardModal.dataset.view = title === "道具图鉴" ? "codex" : "";
     document.querySelector(".reward-box h2").textContent = title;
     els.rewardIntro.textContent = intro;
     els.modalCloseBtn.classList.toggle("hidden", mode === "reward" || mode === "locked");
@@ -136,9 +132,13 @@ window.XQ.Render = (() => {
       els.rewardCards.setAttribute("aria-busy", "true");
       els.rewardCards.querySelectorAll("button").forEach((button) => { button.disabled = true; });
       try {
-        await onPick(card);
+        if (currentState) await window.XQ.StateOps.transact(currentState, () => onPick(card));
+        else await onPick(card);
       } catch (err) {
+        if (currentState) update(currentState, currentHandlers);
         console.error("card action failed:", err?.code || "unknown", err?.message, err?.stack || "");
+        els.rewardModal.classList.remove("hidden");
+        banner(window.XQ.StateOps.actionError(err, "卡牌操作失败，已撤销本次修改，请重试"));
       } finally {
         busy = false;
         els.rewardCards.removeAttribute("aria-busy");
@@ -181,7 +181,7 @@ window.XQ.Render = (() => {
       btn.addEventListener("click", () => runPick(card));
       els.rewardCards.appendChild(btn);
     });
-    els.rewardModal.classList.remove("hidden");
+    window.XQ.AudioManager?.showSettings?.(title === "设置"); els.rewardModal.classList.remove("hidden");
   }
   function label(card, mode) {
     if (mode === "reward") return "";
@@ -195,6 +195,6 @@ window.XQ.Render = (() => {
     if (["cannon", "banner", "oracle"].includes(card.id)) tags.push("可叠加");
     return tags.length ? `${card.name}（${tags.join("，")}）` : card.name;
   }
-  function hideRewards() { els.rewardModal.classList.add("hidden"); }
+  function hideRewards() { window.XQ.AudioManager?.showSettings?.(false); els.rewardModal.classList.add("hidden"); }
   return { banner, hideRewards, init, rewards, showCards, update };
 })();

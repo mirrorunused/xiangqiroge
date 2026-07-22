@@ -149,8 +149,12 @@ window.XQ.Actions = (() => {
     return { targetType: card.targetType, cost: card.cost || 0, shopUid: card.shopUid, name: card.name, rarity: card.rarity, text: card.text };
   }
 
-  function hardNotice(state, render, save, next) {
+  function hardNotice(state, render, save, next, introShown = false) {
     if (!state.hardNotice) return false;
+    if (!introShown && state.currentComboId && window.XQ.ComboIntro?.show(
+      state.currentComboId,
+      () => hardNotice(state, render, save, next, true),
+    )) return true;
     UI.showCards("关卡机制", state.hardNotice, [{ id: "ok", name: "迎战", rarity: "purple", text: "已了解本关特殊规则。" }], async () => {
       state.hardNotice = "";
       UI.hideRewards();

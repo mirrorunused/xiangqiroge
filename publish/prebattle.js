@@ -25,6 +25,7 @@ window.XQ.Prebattle = (() => {
     $("startTalentBtn").onclick = () => actions.talent?.();
     $("startAchievementsBtn").onclick = () => actions.achievements?.();
     $("startCodexBtn").onclick = () => actions.codex?.();
+    $("startGalleryBtn").onclick = () => actions.gallery?.();
     $("startSettingsBtn").onclick = () => actions.settings?.();
     $("startTestBtn").onclick = () => {
       if (testUnlocked) actions.test?.();
@@ -115,12 +116,12 @@ window.XQ.Prebattle = (() => {
     const normal = state.bestRecords.normal;
     const rebel = state.bestRecords.rebel;
     const random = state.bestRecords.random;
+    const achievement = window.XQ.Achievements.progress(state);
     $("startSummary").textContent = `共享积分 ${state.score || 0} · 三种征程独立保存，快速模式单局重开`;
     $("gameVersion").textContent = `v${window.XQ.Config.version}`;
     $("recordSummary").textContent = `常规 ${normal.level}关 · 义军 ${rebel.level}关 · 随机棋 ${random.level}关`;
     $("startRandomBtn").classList.toggle("hidden", !state.talents?.randomModeUnlocked);
     $("startCodexBtn").classList.toggle("hidden", !window.XQ.ItemCodex?.isUnlocked?.(state));
-    const achievement = window.XQ.Achievements.progress(state);
     $("startAchievementsBtn").textContent = `成就 ${achievement.done}/${achievement.total}`;
     $("unlockedList").innerHTML = "";
     unlocked(state).forEach((text) => {
