@@ -44,7 +44,7 @@ window.XQ.CaptureStory = (() => {
   }
 
   async function show(state, type) {
-    if (["random", "quick"].includes(state?.mode)) return;
+    if (["random", "recruit", "quick"].includes(state?.mode)) return;
     const item = collection(state)[type];
     if (!item) return;
     if (state.settings?.captureStoryMode === "brief") {

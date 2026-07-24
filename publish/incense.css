@@ -14,18 +14,34 @@
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
-  border: 2px solid #a36a22;
+  border: 2px solid #b23868;
   border-radius: 4px;
-  background: rgba(246, 194, 93, 0.58);
-  color: #56320b;
+  background: rgba(238, 116, 161, 0.5);
+  color: #64152f;
   font-size: clamp(11px, 3.2vw, 18px);
   font-weight: 900;
   pointer-events: none;
-  box-shadow: inset 0 0 10px rgba(255, 244, 188, 0.8), 0 0 13px rgba(165, 101, 25, 0.62);
+  box-shadow: inset 0 0 10px rgba(255, 224, 237, 0.88), 0 0 13px rgba(178, 56, 104, 0.62);
   z-index: 0;
 }
 
 .incense-tile.remnant {
   opacity: 0.58;
   border-style: dashed;
+}
+
+.piece.incense-covered {
+  background: #f6d4e0;
+  border-color: #a83262;
+  box-shadow: inset 0 0 0 4px rgba(255, 237, 244, 0.72),
+    0 0 0 4px rgba(190, 62, 112, 0.72), 0 4px 9px rgba(66, 18, 39, 0.34);
+}
+
+.piece.red.incense-covered {
+  color: #a52019;
+  text-shadow: 0 1px 0 rgba(255, 248, 250, 0.95);
+}
+
+.piece.black.incense-covered {
+  color: #151a1f;
 }

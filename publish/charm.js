@@ -50,6 +50,7 @@ window.XQ.Charm = (() => {
     if (!piece || piece.side !== "r") return "";
     const index = (state.charmTiles || []).findIndex((tile) => tile.x === piece.x && tile.y === piece.y);
     if (index < 0) return "";
+    if (piece.type === "K") return "红帅不能进入魅惑格。";
     state.charmTiles.splice(index, 1);
     const gained = window.XQ.EnemyItems.takeRelated(state, piece.type);
     window.XQ.Levels.reduceBase(state, window.XQ.Config.values[piece.type] || 0);

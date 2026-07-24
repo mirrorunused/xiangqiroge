@@ -11,32 +11,37 @@
       console.warn("early loading event failed:", err.message);
     }
   </script>
-  <link rel="stylesheet" href="./style.css?v=20260722-2">
+  <link rel="stylesheet" href="./style.css?v=20260724-4">
   <link rel="stylesheet" href="./title.css?v=20260716-3">
   <link rel="stylesheet" href="./story.css?v=20260721-1">
   <link rel="stylesheet" href="./board-fixes.css?v=20260722-12">
-  <link rel="stylesheet" href="./controls.css?v=20260722-5">
+  <link rel="stylesheet" href="./controls.css?v=20260724-6">
   <link rel="stylesheet" href="./combat-feedback.css">
   <link rel="stylesheet" href="./charm.css?v=20260720-1">
-  <link rel="stylesheet" href="./incense.css?v=20260720-2">
+  <link rel="stylesheet" href="./incense.css?v=20260724-2">
+  <link rel="stylesheet" href="./linked-branches.css?v=20260724-2">
   <link rel="stylesheet" href="./music-charm.css?v=20260720-1">
   <link rel="stylesheet" href="./shooter.css?v=20260720-1">
   <link rel="stylesheet" href="./theme-preview.css?v=20260722-2">
-  <link rel="stylesheet" href="./audio.css?v=20260722-8">
+  <link rel="stylesheet" href="./audio.css?v=20260724-9">
+  <link rel="stylesheet" href="./move-record.css?v=20260724-5">
+  <link rel="stylesheet" href="./slot-machine.css?v=20260724-11">
 </head>
 <body>
   <section id="startScreen" class="start-screen hidden">
     <div class="start-panel">
       <button id="menuMusicBtn" class="music-toggle menu-music-toggle" type="button" aria-label="关闭背景音乐" aria-pressed="false" title="关闭背景音乐">♫</button>
       <h2 id="startTitle">兴军讨曌</h2>
-      <p id="gameVersion" class="game-version">v1.2.7</p>
+      <p id="gameVersion" class="game-version">v1.2.10</p>
       <p id="startSummary" class="start-summary">第 1 关 · 0 积分</p>
       <p id="recordSummary" class="record-summary">常规最高：第 1 关/0 分 · 义军最高：第 1 关/0 分</p>
       <div class="start-actions">
         <button id="startNormalBtn" class="primary">开始常规模式</button>
         <button id="startRebelBtn" class="rebel-btn">义军破敌（正式版）</button>
         <button id="startRandomBtn" class="random-btn hidden">随机棋模式</button>
+        <button id="startRecruitBtn" class="random-btn hidden">招兵买马模式</button>
         <button id="startQuickBtn" class="quick-btn">快速模式</button>
+        <button id="startSlotBtn" class="slot-btn">曌帝的私库 · 0 次</button>
         <button id="startLoadBtn">读取存档</button>
         <button id="startTalentBtn">局外天赋</button>
         <button id="startAchievementsBtn">成就</button>
@@ -59,8 +64,9 @@
         <p id="levelText">第 1 关 · 敌军残阵</p>
       </div>
       <div class="topbar-actions">
+        <button id="moveRecordBtn" class="record-toggle" type="button" aria-label="查看行动记录" title="行动记录">记录</button>
         <button id="battleMusicBtn" class="icon-btn music-toggle" type="button" aria-label="关闭背景音乐" aria-pressed="false" title="关闭背景音乐">♫</button>
-        <button id="uiSwitchBtn" class="icon-btn ui-switch-btn hidden" type="button" title="切换界面" aria-label="切换界面">▦</button>
+        <button id="uiSwitchBtn" class="icon-btn ui-switch-btn hidden" type="button" title="切换落子提示样式" aria-label="切换落子提示样式">▦</button>
         <button id="restartBtn" class="icon-btn" aria-label="重开本关卡">↻</button>
       </div>
     </section>
@@ -80,7 +86,7 @@
     <section class="command-panel">
       <div id="randomPlacementPanel" class="random-placement-panel hidden">
         <div class="random-placement-head">
-          <strong>随机棋布阵</strong>
+          <strong id="randomPlacementTitle">随机棋布阵</strong>
           <span id="randomPlacementStatus">已摆放 0/16</span>
         </div>
         <div id="randomReserve" class="random-reserve"></div>
@@ -122,10 +128,46 @@
     </div>
   </div>
 
+  <section id="slotModal" class="slot-modal hidden" role="dialog" aria-modal="true" aria-labelledby="slotTitle">
+    <div class="slot-shell">
+      <button id="slotCloseBtn" class="slot-close" type="button" aria-label="返回主界面">×</button>
+      <button id="slotModeBtn" class="slot-mode-toggle" type="button" aria-label="切换为文字模式" aria-pressed="false">字</button>
+      <header class="slot-head">
+        <p class="slot-kicker">宝库搜寻 · 符号构筑</p>
+        <h2 id="slotTitle">曌帝的私库</h2>
+        <p class="slot-subtitle">行军中搜集到的散落线索，指向曌帝私库。在有限的时间里搜寻并撤离。</p>
+      </header>
+      <div class="slot-stats" aria-live="polite">
+        <div><span>剩余安全搜寻次数</span><strong id="slotUsesText">9 次</strong></div>
+        <div><span>搜寻回合</span><strong id="slotSpinText">0/10</strong></div>
+        <div><span>本局积分</span><strong id="slotTotalText">0</strong></div>
+      </div>
+      <section class="slot-rules" aria-labelledby="slotRulesTitle">
+        <h3 id="slotRulesTitle">搜寻规则</h3>
+        <p>前 9 轮为安全搜寻，剩余安全搜寻次数从 9 次倒计时；每轮结束从 3 件物品中选 1 件加入后续物品池。第 10 轮开始有近卫军发现风险，选物后可继续搜寻或直接撤离。</p>
+      </section>
+      <div class="slot-layout">
+        <div id="slotGrid" class="slot-grid" aria-label="私库物品搜寻盘面"></div>
+        <div class="slot-side">
+          <p id="slotStatus" class="slot-status"></p>
+          <p id="slotDetails" class="slot-details"></p>
+          <div class="slot-pool-wrap">
+            <strong>当前物品池</strong>
+            <button id="slotPool" class="slot-pool" type="button" aria-haspopup="dialog" aria-label="查看当前物品池效果"></button>
+          </div>
+          <div id="slotChoices" class="slot-choices"></div>
+          <button id="slotActionBtn" type="button">开始搜寻</button>
+          <button id="slotRetreatBtn" class="slot-retreat hidden" type="button">直接撤退</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="rewardModal" class="modal hidden" aria-modal="true">
     <div class="reward-box">
       <button id="modalCloseBtn" class="modal-close" aria-label="关闭">×</button>
       <h2>战斗胜利</h2>
+      <button id="rewardMoveRecordBtn" class="reward-move-record-btn hidden" type="button">查看行动记录</button>
       <p id="rewardIntro">选择一个奖励继续进军。</p>
       <div id="audioSettingsPanel" class="audio-settings hidden" aria-label="音量设置">
         <div class="audio-setting">
@@ -157,6 +199,22 @@
       <p id="cheatFeedback" class="cheat-feedback" aria-live="polite"></p>
       <button id="cheatSubmitBtn" class="primary" type="button">解锁测试入口</button>
     </form>
+  </section>
+
+  <section id="moveRecordModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="moveRecordTitle">
+    <div class="move-record-box">
+      <button id="moveRecordCloseBtn" class="modal-close" type="button" aria-label="关闭行动记录">×</button>
+      <div class="move-record-head">
+        <div>
+          <p class="move-record-eyebrow">本局 · 当前关卡</p>
+          <h2 id="moveRecordTitle">行动记录</h2>
+        </div>
+        <strong id="moveRecordCount">0 手</strong>
+      </div>
+      <div id="moveRecordList" class="move-record-list"></div>
+      <p id="moveRecordEmpty" class="move-record-empty">本局尚未完成行动。</p>
+      <p class="move-record-note">斜向移动按“平”与“进/退”拆分记录。</p>
+    </div>
   </section>
 
   <section id="captureModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="captureTitle">
@@ -205,19 +263,12 @@
     </div>
   </section>
 
-  <script src="./music-loader.js?v=20260722-1"></script>
+  <script src="./music-loader.js?v=20260724-1"></script>
   <script src="./audio-manager.js?v=20260722-10"></script>
   <script src="./combo-intro.js?v=20260722-2"></script>
-  <script src="./preview-patches.js?v=20260722-5"></script>
-  <script src="./shop-slot-patch.js?v=20260722-1"></script>
+  <script src="./preview-patches.js?v=20260724-1"></script>
   <script src="./board-layout.js?v=20260722-2"></script>
-  <script src="./fx.js?v=20260722-1"></script>
-  <script src="./story-voice.js?v=20260722-4"></script>
-  <script src="./game-1.2.7.js?v=20260723-1"></script>
-  <script src="./consumable-state.js?v=20260722-1"></script>
-  <script src="./corruption.js?v=20260722-1"></script>
-  <script src="./items.js?v=20260722-1"></script>
-  <script src="./shopstate.js?v=20260722-1"></script>
-  <script src="./item-menu.js?v=20260722-2"></script>
+  <script src="./slot-layout.js?v=20260724-2"></script>
+  <script src="./game-1.2.10.js?v=20260724-4"></script>
 </body>
 </html>

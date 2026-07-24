@@ -42,7 +42,7 @@ window.XQ.OuterItems = (() => {
       cost: outerPrice(config, item.id),
     }));
     const cards = special.concat(normal);
-    return state.mode === "random" ? cards.filter((card) => ["banner", "cannon"].includes(card.baseId)) : cards;
+    return window.XQ.RandomMode.is(state) ? cards.filter((card) => ["banner", "cannon"].includes(card.baseId)) : cards;
   }
 
   function specialCards(level, state) {

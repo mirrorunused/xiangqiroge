@@ -10,7 +10,7 @@ window.XQ.RandomMode = (() => {
   ]);
 
   function is(state) {
-    return state?.mode === "random";
+    return ["random", "recruit"].includes(state?.mode);
   }
 
   function ensure(state) {
@@ -29,7 +29,7 @@ window.XQ.RandomMode = (() => {
     if (!is(state) || state.randomRunReady) return;
     state.randomRunReady = true;
     state.randomPlacement = true;
-    state.randomReserve = draft();
+    state.randomReserve = draft(state);
     state.randomPlacementSelected = state.randomReserve[0]?.id || null;
     state.randomLevelStartPieces = [];
     const granted = grantOpeningItems(state);
@@ -38,13 +38,12 @@ window.XQ.RandomMode = (() => {
     state.randomOpeningNoticePending = true;
   }
 
-  function draft() {
+  function draft(state) {
     const seed = `${Date.now()}${Math.random().toString(16).slice(2)}`;
-    const pieces = [];
-    for (let i = 0; i < 16; i += 1) {
-      const type = TYPES[Math.floor(Math.random() * TYPES.length)];
-      pieces.push({ id: `rr${seed}${i}`, side: "r", type });
-    }
+    const types = state?.mode === "recruit"
+      ? window.XQ.Config.redSetup.map(([type]) => type)
+      : Array.from({ length: 16 }, () => TYPES[Math.floor(Math.random() * TYPES.length)]);
+    const pieces = types.map((type, index) => ({ id: `rr${seed}${index}`, side: "r", type }));
     return shuffle(pieces);
   }
 
@@ -157,7 +156,10 @@ window.XQ.RandomMode = (() => {
   async function checkOutcome(state, options, rules) {
     if (!is(state)) return null;
     let result = null;
-    if (!state.board.some((piece) => piece.side === "r")) result = options.lose("红方棋子已全部被吃，随机棋征程结束");
+    if (!state.board.some((piece) => piece.side === "r")) {
+      const modeName = state.mode === "recruit" ? "招兵买马" : "随机棋";
+      result = options.lose(`红方棋子已全部被吃，${modeName}征程结束`);
+    }
     else if (!state.board.some((piece) => piece.side === "b" && piece.type === "K")) result = options.win("斩将成功");
     else if (!rules.sideMoves(state.board, "b", state).length) result = options.win("黑方无合法走法");
     if (!result) return false;
@@ -194,6 +196,8 @@ window.XQ.RandomMode = (() => {
   return {
     activeOuterItems, beforeLevel, carryBoard, checkOutcome, ensure, is,
     ownCells, passLocked, prepareRun, redPieces, restoreLevelStart, reward, shop, shopAllowed,
-    showOpening: window.XQ.ModeOpening.random,
+    showOpening: (state) => state.mode === "recruit"
+      ? window.XQ.ModeOpening.recruit(state)
+      : window.XQ.ModeOpening.random(state),
   };
 })();

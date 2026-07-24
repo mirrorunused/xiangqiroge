@@ -5,14 +5,11 @@ window.XQ.Render = (() => {
     ["board", "gameTitle", "levelText", "scoreText", "multText", "itemText", "tempoText",
       "turnText", "tipText", "banner", "rewardModal", "rewardCards",
       "rewardIntro", "nextBtn", "hintBtn", "undoBtn", "shopBtn", "talentBtn",
-      "itemsBtn", "moreBtn", "restartBtn", "saveBtn", "loadBtn", "settingsBtn", "leaveBtn", "giveUpBtn", "modalCloseBtn"].forEach((id) => { els[id] = $(id); });
-    els.modalCloseBtn.addEventListener("click", hideRewards);
-    els.levelText.addEventListener("click", () => window.XQ.LevelDetail?.open?.(currentState));
-    els.levelText.title = "点击查看本关详情"; els.levelText.style.cursor = "pointer";
+      "itemsBtn", "moreBtn", "restartBtn", "saveBtn", "loadBtn", "settingsBtn", "moveRecordBtn", "leaveBtn", "giveUpBtn", "modalCloseBtn"].forEach((id) => { els[id] = $(id); });
+    els.rewardMoveRecordBtn = $("rewardMoveRecordBtn"); els.modalCloseBtn.addEventListener("click", hideRewards); els.rewardMoveRecordBtn.addEventListener("click", () => window.XQ.MoveRecord.open(currentState));
+    els.levelText.addEventListener("click", () => window.XQ.LevelDetail?.open?.(currentState)); els.levelText.title = "点击查看本关详情"; els.levelText.style.cursor = "pointer";
   }
-  function pos(el, x, y) {
-    el.style.left = `${5.5 + (x / 8) * 89}%`; el.style.top = `${5 + (y / 9) * 90}%`;
-  }
+  function pos(el, x, y) { el.style.left = `${5.5 + (x / 8) * 89}%`; el.style.top = `${5 + (y / 9) * 90}%`; }
   function drawBoard(state, handlers) {
     els.board.classList.toggle("river-flooded", Boolean(state.riverFlooded)); els.board.innerHTML = state.riverFlooded ? '<div class="river flooded"><span>楚河　　汉界</span><small>跨河先停线</small></div>' : '<div class="river"><span>楚河　　汉界</span></div>';
     window.XQ.BoardPreview.draw(state, els.board, pos);
@@ -50,11 +47,11 @@ window.XQ.Render = (() => {
       cell.addEventListener("click", () => handlers.piece(p.id));
       const piece = document.createElement("span");
       piece.className = `piece ${p.side === "b" ? "black" : p.side === "n" ? "neutral" : "red"}`;
-      piece.dataset.pieceId = p.id;
-      piece.classList.add(`piece-type-${p.type}`);
+      piece.dataset.pieceId = p.id; piece.classList.add(`piece-type-${p.type}`);
+      const linked = window.XQ.LinkedBranches?.pairFor?.(state, p.id); if (linked) { piece.classList.add("linked-branch", `linked-branch-${linked.color}`); piece.dataset.linkedMarker = linked.marker; }
       if (state.selected === p.id) piece.classList.add("selected");
       if (window.XQ.BoardPreview.selected(state, p.id)) piece.classList.add("enemy-selected");
-      if (state.lastMove && state.lastMove.id === p.id) piece.classList.add("last"); if (p.musicControlled) piece.classList.add("music-controlled");
+      if (state.lastMove && state.lastMove.id === p.id) piece.classList.add("last"); if (p.musicControlled) piece.classList.add("music-controlled"); if (window.XQ.Incense?.covers?.(state, p.x, p.y)) piece.classList.add("incense-covered");
       if (p.type === "K" && window.XQ.Rules.inCheck(state.board, p.side, state)) piece.classList.add("under-check");
       if ((p.type === "K" && hasKingGuard(state, p.side)) || p.id === state.enemyDivine?.targetId) piece.classList.add("guarded");
       const turtle = p.side === "b" ? state.enemyTurtle : p.side === "r" ? state.playerTurtle : null; if (p.type === "K" && turtle?.active) piece.classList.add("turtle-ready"); if (p.type === "K" && turtle?.shield > 0) piece.classList.add("turtle-shield");
@@ -68,7 +65,7 @@ window.XQ.Render = (() => {
     const busy = Boolean(handlers.busy); const placing = window.XQ.RandomPlacement.active(state);
     document.querySelector(".command-panel").classList.toggle("placing", placing);
     drawBoard(state, handlers);
-    els.gameTitle.textContent = `兴军讨曌-${({ normal: "常规模式", rebel: "义军破敌", random: "随机棋模式", quick: "快速模式" })[state.mode] || "常规模式"}`;
+    els.gameTitle.textContent = `兴军讨曌-${({ normal: "常规模式", rebel: "义军破敌", random: "随机棋模式", recruit: "招兵买马模式", quick: "快速模式" })[state.mode] || "常规模式"}`;
     els.levelText.textContent = window.XQ.Levels.levelName(state);
     els.scoreText.textContent = String(state.score);
     const mult = state.view?.scoreMult || state.scoreMult || 1;
@@ -78,7 +75,7 @@ window.XQ.Render = (() => {
     els.tempoText.textContent = `${Math.min(state.playerMovesLeft || max, max)}/${max}`;
     els.turnText.textContent = state.message;
     els.tipText.textContent = makeTip(state);
-    const canSkip = ["normal", "random"].includes(state.mode) && state.phase === "play" && state.side === "r" && state.level <= 5;
+    const canSkip = ["normal", "random", "recruit"].includes(state.mode) && state.phase === "play" && state.side === "r" && state.level <= 5;
     els.nextBtn.textContent = canSkip ? "跳过本关" : "下一关";
     els.nextBtn.classList.toggle("hidden", state.phase !== "rewarded" && !canSkip);
     els.nextBtn.disabled = busy || Boolean(state.pendingRevive);
@@ -93,6 +90,7 @@ window.XQ.Render = (() => {
     els.saveBtn.disabled = busy || state.side !== "r" || state.mode === "quick";
     els.loadBtn.disabled = busy;
     els.settingsBtn.disabled = busy; els.leaveBtn.disabled = busy || state.side !== "r";
+    els.moveRecordBtn.disabled = busy;
     els.giveUpBtn.disabled = busy || state.phase !== "play";
     window.XQ.RandomPlacement.render(state);
   }
@@ -123,7 +121,9 @@ window.XQ.Render = (() => {
     els.rewardModal.dataset.view = title === "道具图鉴" ? "codex" : "";
     document.querySelector(".reward-box h2").textContent = title;
     els.rewardIntro.textContent = intro;
-    els.modalCloseBtn.classList.toggle("hidden", mode === "reward" || mode === "locked");
+    els.modalCloseBtn.classList.toggle("hidden", mode === "reward" || mode === "locked"); const recordView = mode === "reward"
+      || ["战败结算", "快速模式胜利", "快速模式结束"].includes(title);
+    els.rewardMoveRecordBtn.classList.toggle("hidden", !recordView);
     els.rewardCards.innerHTML = "";
     let busy = false;
     const runPick = async (card) => {

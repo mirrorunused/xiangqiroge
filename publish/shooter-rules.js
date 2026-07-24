@@ -181,7 +181,7 @@ window.XQ.ShooterRules = (() => {
     return {
       board: red.filter((piece) => ids.has(piece.id)).map((piece) => ({ ...piece })),
       captured: mode === "rebel" ? red.filter((piece) => !ids.has(piece.id)).map((piece) => ({ ...piece })) : [],
-      carries: mode === "rebel" || mode === "random",
+      carries: mode === "rebel" || mode === "random" || mode === "recruit",
     };
   }
 

@@ -14,7 +14,8 @@ window.XQ.StateOps = (() => {
     window.XQ.Fish?.startLevel?.(state);
     D.start(state);
     window.XQ.Collapse?.startLevel?.(state);
-    window.XQ.RoundEffects?.startLevel?.(state);
+    const round = window.XQ.RoundEffects?.startLevel?.(state);
+    window.XQ.MoveRecord?.event?.(state, round, "mechanism");
   }
 
   function restartLevel(state) {
@@ -33,6 +34,7 @@ window.XQ.StateOps = (() => {
       board: R.clone(state.board),
       side: state.side,
       playerMovesLeft: state.playerMovesLeft,
+      moveRecords: (state.moveRecords || []).map((record) => ({ ...record })),
       lastMove: state.lastMove,
       fieldItems: state.fieldItems.map((i) => ({ ...i })),
       capturedRed: state.capturedRed.map((i) => ({ ...i })),
@@ -51,6 +53,8 @@ window.XQ.StateOps = (() => {
       enemyMusic: state.enemyMusic ? { ...state.enemyMusic, controlledIds: [...(state.enemyMusic.controlledIds || [])] } : null,
       enemyReinforcement: state.enemyReinforcement ? { ...state.enemyReinforcement } : null,
       enemyIncense: state.enemyIncense ? { ...state.enemyIncense } : null,
+      enemyKarma: state.enemyKarma ? { ...state.enemyKarma, pieces: JSON.parse(JSON.stringify(state.enemyKarma.pieces || {})) } : null,
+      enemyLinkedBranches: state.enemyLinkedBranches ? { ...state.enemyLinkedBranches, pairs: JSON.parse(JSON.stringify(state.enemyLinkedBranches.pairs || [])) } : null,
       enemySacrifice: state.enemySacrifice ? { ...state.enemySacrifice } : null,
       enemyBonusMoves: state.enemyBonusMoves || 0,
       enemyMovesLeft: state.enemyMovesLeft || 0,

@@ -9,7 +9,7 @@ window.XQ.Items = (() => {
   }
   function uid() { return `i${Date.now()}${Math.random().toString(16).slice(2)}`; }
   function normalize(state) {
-    state.items = (state.items || []).map((item) => item.uid ? item : { ...item, uid: uid() }); window.XQ.ConsumableState.normalize(state);
+    state.items = (state.items || []).map((item) => item.uid ? item : { ...item, uid: uid() }); window.XQ.ConsumableState?.normalize?.(state);
     state.talents = Object.assign({ retain: 0, outerItems: [] }, state.talents || {});
     state.talents.outerItems = state.talents.outerItems || [];
     window.XQ.Progression?.ensure?.(state);
@@ -77,7 +77,7 @@ window.XQ.Items = (() => {
     return { id: "letMove", name: "让你一招", rarity: "gold", text: `立即获得 ${points} 积分，黑方下次额外行动一回合。`, cost: 0, points };
   }
   function reviveCard(level, state) {
-    if (!["rebel", "random"].includes(state.mode) || !(state.capturedRed || []).length) return null;
+    if (!["rebel", "random", "recruit"].includes(state.mode) || !(state.capturedRed || []).length) return null;
     const item = C.randomItems.find((entry) => entry.id === "revive");
     const card = makeCard(item, level);
     card.cost = 140 + level * 24 + 55;
@@ -90,7 +90,7 @@ window.XQ.Items = (() => {
     const normal = [];
     while (normal.length < 3) {
       const excluded = normal.map((item) => item.id);
-      if (["rebel", "random"].includes(state.mode)) excluded.push("revive");
+    if (["rebel", "random", "recruit"].includes(state.mode)) excluded.push("revive");
       normal.push(randomCard(level, state, excluded, "shop"));
     }
     normal.forEach((card, index) => {
@@ -99,7 +99,7 @@ window.XQ.Items = (() => {
       card.cost = double ? Math.round(cost * 2) : card.id === "meteor" ? window.XQ.Meteor.cost(level) : card.id === "offboard" ? 620 + level * 30 : card.id === "kingGuard" ? 800 : card.id === "charmMakeup" ? 680 : card.id === "endure" ? 720 : card.id === "shopFree" ? 10 : card.id === "supply" ? Math.max(1, Math.floor((card.points || cost) / 2)) : cost;
       if (state.talents?.shopUnlocks?.horseSale && ["horseStep", "horseLeap", "horseRun", "horseFly"].includes(card.id)) card.cost = Math.max(1, Math.round(card.cost / 2));
     });
-    const cards = normal.concat(morphCards(level, state), destroyCard(state), tacticCard(level, state)); return state.mode === "random" ? window.XQ.RandomMode.shop(level, state, cards) : cards;
+    const cards = normal.concat(morphCards(level, state), destroyCard(state), tacticCard(level, state)); return window.XQ.RandomMode?.is?.(state) ? window.XQ.RandomMode.shop(level, state, cards) : cards;
   }
   function pushItem(state, card) {
     state.items.push({ id: card.id, uid: uid(), name: card.name, rarity: card.rarity || "white", text: card.text, value: card.value, level: state.level });

@@ -6,7 +6,6 @@ window.XQ.BoardLayout = (() => {
   const MAX_SHELL_WIDTH = 560;
   const MIN_SIZE = 40;
   let frame = 0;
-  let observer = null;
 
   function number(value) {
     const parsed = Number.parseFloat(value);
@@ -46,12 +45,8 @@ window.XQ.BoardLayout = (() => {
   function init() {
     const wrap = document.querySelector(".board-wrap");
     if (!wrap) return;
-    if (typeof ResizeObserver === "function") {
-      observer = new ResizeObserver(fit);
-      observer.observe(wrap);
-      observer.observe(document.body);
-    }
     window.addEventListener("resize", fit, { passive: true });
+    window.visualViewport?.addEventListener("resize", fit, { passive: true });
     document.addEventListener("visibilitychange", fit);
     fit();
   }

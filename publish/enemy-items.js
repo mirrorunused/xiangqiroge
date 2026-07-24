@@ -27,14 +27,16 @@ window.XQ.EnemyItems = (() => {
 
   function takeRelated(state, type) {
     const items = activeItems(state);
-    return (RELATED[type] || []).map((id) => {
-      if (!available(state, id)) return "";
-      const item = items.find((entry) => entry.id === id);
-      if (!item) return "";
-      const name = grant(state, id, item.name);
-      if (name) removeOwned(state, item);
-      return name;
-    }).filter(Boolean);
+    const wanted = new Set(RELATED[type] || []);
+    const consumables = new Set(window.XQ.Config.consumableIds || []);
+    const item = items.find((entry) => (
+      wanted.has(entry.id) && !consumables.has(entry.id) && available(state, entry.id)
+    ));
+    if (!item) return [];
+    const name = grant(state, item.id, item.name);
+    if (!name) return [];
+    removeOwned(state, item);
+    return [name];
   }
 
   function grantRandom(state) {
@@ -55,6 +57,16 @@ window.XQ.EnemyItems = (() => {
     state.enemyTraits[id] = true;
     window.XQ.EnemyTraits?.normalize?.(state.enemyTraits);
     return customName || itemName(id);
+  }
+
+  function loseRandom(state) {
+    const ids = Object.keys(state.enemyTraits || {}).filter((id) => state.enemyTraits[id]);
+    const candidates = state.enemyTurtle ? ids.concat("turtleShell") : ids;
+    if (!candidates.length) return "";
+    const id = candidates[Math.floor(Math.random() * candidates.length)];
+    if (id === "turtleShell") state.enemyTurtle = null;
+    else state.enemyTraits[id] = false;
+    return itemName(id);
   }
 
   function available(state, id) {
@@ -81,5 +93,5 @@ window.XQ.EnemyItems = (() => {
     return window.XQ.Config.randomItems.find((item) => item.id === id)?.name || id;
   }
 
-  return { grant, grantRandom, grantRelated, takeRelated };
+  return { grant, grantRandom, grantRelated, loseRandom, takeRelated };
 })();

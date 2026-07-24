@@ -4,10 +4,10 @@ window.XQ.Drops = (() => {
   const R = window.XQ.Rules;
   const TYPES = [
     { id: "freeze", name: "缚阵令", mark: "冻", text: "敌方接下来一到两次行动被冻结。" },
-    { id: "rook", name: "车骑令", mark: "车", text: "拾取的红方棋子变为车；随机棋模式仅持续本局。" },
+    { id: "rook", name: "车骑令", mark: "车", text: "拾取的红方棋子变为车；随机棋与招兵买马模式仅持续本局。" },
     { id: "pawn", name: "贬卒令", mark: "卒", text: "敌方优先随机非卒棋子变为卒。" },
   ];
-  const QUEEN = { id: "queen", name: "升后令", mark: "后", text: "随机棋模式专属：拾取的红方棋子本局变为后。" };
+  const QUEEN = { id: "queen", name: "升后令", mark: "后", text: "随机棋与招兵买马模式专属：拾取的红方棋子本局变为后。" };
   const HERBICIDE = { id: "herbicide", name: "除草剂", mark: "除", text: "随机清除最多 5 个草。" };
 
   function emptyCells(state) {
@@ -39,7 +39,7 @@ window.XQ.Drops = (() => {
   function rollType(state) {
     if (state.enemyFish?.active && Math.random() < 0.28) return HERBICIDE;
     const r = Math.random();
-    if (state.mode === "random") return r < 0.16 ? TYPES[0] : r < 0.44 ? TYPES[1] : r < 0.72 ? QUEEN : TYPES[2];
+    if (window.XQ.RandomMode?.is?.(state)) return r < 0.16 ? TYPES[0] : r < 0.44 ? TYPES[1] : r < 0.72 ? QUEEN : TYPES[2];
     return r < 0.16 ? TYPES[0] : r < 0.58 ? TYPES[1] : TYPES[2];
   }
 
@@ -61,14 +61,15 @@ window.XQ.Drops = (() => {
     if (index < 0) return "";
     const item = state.fieldItems.splice(index, 1)[0];
     const targetSide = piece.side === "r" ? "b" : "r";
+    let text = item.text;
     if (item.id === "freeze") {
       const turns = window.XQ.Items.count(state, "tempo") > 0 ? 1 : 2;
       if (targetSide === "b") state.enemyFrozen += turns;
       else state.playerFrozen += turns;
+      text = `拾取${item.name}，${sideName(targetSide)}冻结 ${turns} 回合`;
     }
-    let text = item.text;
     if (["rook", "queen"].includes(item.id) && side === "r") text = morph(state, piece, item);
-    if (item.id === "pawn") weakenSide(state, targetSide);
+    if (item.id === "pawn") text = weakenSide(state, targetSide, item);
     if (item.id === "herbicide") text = clearGrass(state, 5);
     spawn(state, false);
     return text;
@@ -77,15 +78,15 @@ window.XQ.Drops = (() => {
   function morph(state, piece, item) {
     const targetType = item.id === "queen" ? "Q" : "R";
     if (window.XQ.DropMorphs.apply(state, piece, targetType)) {
-      return `${item.name}生效：该棋子本局变为${window.XQ.Config.labels.r[targetType]}，下一局恢复原兵种。`;
+      return `拾取${item.name}，该棋子本局变为${window.XQ.Config.labels.r[targetType]}，下一局恢复原兵种`;
     }
     if (piece.type !== "K") {
       piece.type = targetType;
-      return item.text;
+      return `拾取${item.name}，该棋子变为${window.XQ.Config.labels.r[targetType]}`;
     }
     const points = item.id === "queen" ? 100 : 80;
     state.score += points;
-    return `帅不能变${window.XQ.Config.labels.r[targetType]}，改为获得 ${points} 积分。`;
+    return `拾取${item.name}，帅不能变${window.XQ.Config.labels.r[targetType]}，改为获得 ${points} 积分`;
   }
 
   function clearGrass(state, amount) {
@@ -96,13 +97,18 @@ window.XQ.Drops = (() => {
     return picked.length ? `除草剂生效：随机清除了 ${picked.length} 个草。` : "除草剂没有找到可清除的草。";
   }
 
-  function weakenSide(state, side) {
+  function weakenSide(state, side, item) {
     const strongTargets = state.board.filter((p) => p.side === side && p.type !== "K" && p.type !== "P");
     const targets = strongTargets.length ? strongTargets : state.board.filter((p) => p.side === side && p.type !== "K");
-    if (!targets.length) return;
+    if (!targets.length) return `拾取${item.name}，${sideName(side)}没有可变卒棋子`;
     const target = targets[Math.floor(Math.random() * targets.length)];
+    const label = window.XQ.Config.labels[side]?.[target.type] || target.type;
+    const rank = (side === "b" && target.y === 0) || (side === "r" && target.y === 9) ? "底线" : "";
     target.type = "P";
+    return `拾取${item.name}，${sideName(side)}${rank}${label}变卒`;
   }
+
+  function sideName(side) { return side === "b" ? "黑方" : "红方"; }
 
   return { collect, spawn, start };
 })();

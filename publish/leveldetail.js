@@ -30,41 +30,86 @@ window.XQ.LevelDetail = (() => {
 
   function cards(state) {
     const list = mechanismCards(state).concat(enemyItemCards(state));
-    if (state.mode === "random") list.unshift(card("random-list", "随机棋关卡列表", "gold", randomList(state)));
     return list.length ? list : [{ id: "normal", name: "普通关卡", rarity: "white", text: "本关无额外特殊机制，击败黑将即可过关。" }];
-  }
-
-  function randomList(state) {
-    return window.XQ.ComboOrder.randomLevels(state)
-      .map((entry) => `第${entry.level}关 ${window.XQ.ComboOrder.name(entry.id)}`).join(" → ");
   }
 
   function mechanismCards(state) {
     const list = [];
     if (!window.XQ.Levels.isFullEnemy(state.level)) {
       const left = Math.max(0, C.blackAddOrder.length - Math.max(0, (state.level || 1) - 1));
-      list.push(card("formation", "敌军残阵", "white", `黑方未满编，仍缺 ${left} 枚棋子。${state.mode === "normal" ? "前 5 关可直接跳过本关。" : "当前模式不可跳关。"}`));
+      list.push(card("formation", "敌军残阵", "white", `黑方未满编，仍缺 ${left} 枚棋子。${["normal", "random", "recruit"].includes(state.mode) ? "前 5 关可直接跳过本关。" : "当前模式不可跳关。"}`));
     }
     if (state.hardNotice) list.push(card("notice", "本关特殊机制", "purple", state.hardNotice));
     if (state.dropRefreshLocked && !state.enemyMomentum?.active) list.push(card("drop-lock", "封锁补给", "purple", "本关不再刷新局内可拾取道具。"));
     if (state.suppressedItemUids?.length) list.push(card("suppress", "敌军压制", "red", suppressedText(state)));
     if (state.riverFlooded) list.push(card("river-flood", "河界汛期", "gold", "双方棋子跨河前必须先停到河内线；从河内线开始的行动不受限制。"));
-    if (state.enemyTurtle) list.push(card("turtle", "组合技：龟缩", "red", "黑将被吃时取消本次吃将，进入 3 回合无敌，9 回合后可再次龟缩。"));
-    if (state.enemyRabbit) list.push(card("rabbit", "组合技：兔阵", "gold", "黑方棋子被吃时，若后方一格为空，则后退避开吃子，触发后冷却 4 回合。"));
+    if (state.enemyTurtle) list.push(card("turtle", "组合技：龟缩", "red", turtleText(state)));
+    if (state.enemyRabbit) list.push(card("rabbit", "组合技：兔阵", "gold", `黑方棋子被吃时，若后方一格为空，则后退避开吃子，触发后冷却 4 回合。当前状态：${cooldown(state.enemyRabbit.cooldown)}。`));
     if (state.enemyDivine) list.push(card("divine", "组合技：神选", "red", "黑方每回合随机一枚棋子获得护驾符，一回合内首次被吃时免疫并反杀。"));
     if (state.enemyCollapse) list.push(card("collapse", "组合技：崩盘", "purple", "开局和后续回合生成崩落位；红方棋子踏入会被吞没，崩落位持续 2 回合。"));
-    if (state.enemyFish) list.push(card("fish", "组合技：鱼水", "green", "开局生成草；之后每 5 次红方行动追加生成，草会阻隔行棋且双方均可吃。"));
+    if (state.enemyFish) list.push(card("fish", "组合技：鱼水", "green", `开局生成草；之后每 5 次红方行动追加生成，草会阻隔行棋且双方均可吃。距离下次生成：${periodic(state.enemyFish.turns, 5)} 回合。`));
     if (state.enemyEunuch) list.push(card("eunuch", "组合技：宦潮", "red", "五卒与两象化仕；黑方持有仕出宫、仕过河、仕途通达。"));
-    if (state.enemyCharm?.blade) list.push(card("charm-blade", "组合技：媚骨蚀锋", "red", "媚阵生效；每个红方回合刷新 3 个持续一回合的魅惑格，红子踏入即倒戈，且黑方夺取对应道具。"));
+    if (state.enemyCharm?.blade) list.push(card("charm-blade", "组合技：媚骨蚀锋", "red", `媚阵生效；每个红方回合刷新 3 个持续一回合的魅惑格。红帅不能进入魅惑格；其他红子每次进入后倒戈，黑方仅夺取 1 个对应的非消耗品道具。当前魅惑格：${(state.charmTiles || []).length} 个。`));
     else if (state.enemyCharm?.formation) list.push(card("charm-formation", "组合技：媚阵", "red", "黑方吃掉红子后，在吃子棋子后方空位复制同兵种黑子，并获得对应棋子道具；红方保留原道具。"));
     if (state.enemyHorse) list.push(card("horse", `组合技：纵马${state.enemyHorse}`, "gold", `黑方马系列道具升级，并将 ${state.enemyHorse + 1} 个卒改为马。`));
-    if (state.enemyCorruption?.active) list.push(card("corruption", "组合技：染心", "red", `红方吃子后会倒戈并交出对应道具；当前冷却 ${state.enemyCorruption.cooldown || 0} 回合。`));
-    if (state.enemyMusic?.active) list.push(card("music", "组合技：迷音", "red", `每 3 回合随机控制红方非帅棋子一回合，受控棋子保留红方道具加成；第 6 回合起每次控制两枚。当前已计 ${state.enemyMusic.turns || 0} 回合。`));
-    if (state.enemyReinforcement?.active) list.push(card("reinforcement", "组合技：增援", "red", `第 3 回合起每 2 回合随机增兵，数量从 1 枚逐步提升至 3 枚，兵种质量同步升级且皇后权重最低。当前第 ${state.enemyReinforcement.waves || 0} 波。`));
-    if (state.enemyIncense?.active) list.push(card("incense", "组合技：香阵", "red", "开局及每 2 回合生成逐步扩张的香阵，次回合保留一半；阵内红子不能移动，阵内黑子不能被吃。"));
+    if (state.enemyCorruption?.active) list.push(card("corruption", "组合技：染心", "red", `红方吃子后会倒戈并交出对应道具，触发后冷却 3 回合。当前状态：${cooldown(state.enemyCorruption.cooldown)}。`));
+    if (state.enemyMusic?.active) list.push(card("music", "组合技：迷音", "red", `每 3 回合随机控制红方非帅棋子一回合，受控棋子保留红方道具加成；第 6 回合起每次控制两枚。距离下次发动：${periodic(state.enemyMusic.turns, 3)} 回合。`));
+    if (state.enemyReinforcement?.active) list.push(card("reinforcement", "组合技：增援", "red", `第 3 回合起每 2 回合随机增兵，数量从 1 枚逐步提升至 3 枚，兵种质量同步升级且皇后权重最低。当前第 ${state.enemyReinforcement.waves || 0} 波，距离下次增援：${reinforcementWait(state.enemyReinforcement.turns)} 回合。`));
+    if (state.enemyIncense?.active) list.push(card("incense", "组合技：香阵", "red", `开局及每 2 回合生成逐步扩张的香阵，次回合保留一半；阵内红子不能移动，阵内黑子不能被吃。下回合：${(state.enemyIncense.turns || 0) % 2 === 0 ? "保留一半" : "扩张香阵"}。`));
     if (state.enemyMomentum) list.push(card("momentum", "盈不可久", "red", "红方每吃掉一枚黑方棋子，黑方下一次行动额外走 1 步，最多累计 2 步。"));
-    if (state.enemySacrifice?.active) list.push(card("sacrifice", "组合技：生祭", "red", "黑方可以吃己方非将棋子并获得随机道具，每 2 回合随机获得一枚棋子。"));
+    if (state.enemyKarma?.active) list.push(card("karma", "组合技：业障", "red", karmaText(state)));
+    if (state.enemyLinkedBranches?.active) list.push(card("linked-branches", state.enemyLinkedBranches.pairLimit ? "机制：连枝" : "组合技：连枝", "red", linkedText(state)));
+    if (state.enemySacrifice?.active) list.push(card("sacrifice", "组合技：生祭", "red", `黑方每次吃子均获得随机道具，且黑子可以吃掉己方非将棋子；每 2 回合随机获得一枚棋子。距离下次增兵：${periodic(state.enemySacrifice.turns, 2)} 回合。`));
     return list;
+  }
+
+  function cooldown(value) {
+    const turns = Math.max(0, Number(value) || 0);
+    return turns > 0 ? `冷却 ${turns} 回合` : "就绪";
+  }
+
+  function periodic(value, interval) {
+    const turns = Math.max(0, Number(value) || 0);
+    return interval - (turns % interval);
+  }
+
+  function reinforcementWait(value) {
+    const turns = Math.max(0, Number(value) || 0);
+    if (turns < 3) return 3 - turns;
+    return (turns - 3) % 2 === 0 ? 2 : 1;
+  }
+
+  function karmaText(state) {
+    const records = Object.entries(state.enemyKarma.pieces || {}).filter(([, data]) => data.captures > 0);
+    const detail = records.map(([id, data]) => {
+      const piece = state.board.find((entry) => entry.id === id);
+      const name = piece ? C.labels.r[piece.type] || piece.type : id;
+      const blocked = data.blockedTurn === state.enemyKarma.turn ? "，本回合封锁" : "";
+      return `${name} ${data.captures} 枚${blocked}`;
+    }).join("；");
+    return `同一红子累计吃 2 子后下一回合无法行动；累计吃 3 子随机失去一个非消耗品；累计吃 4 子按被黑方吃掉结算。${detail ? `当前：${detail}。` : "当前尚无红子吃子。"} `;
+  }
+
+  function linkedText(state) {
+    const pairs = (state.enemyLinkedBranches.pairs || []).map((pair) => {
+      const alive = (id) => state.board.some((piece) => piece.id === id);
+      const status = pair.broken ? "俱断" : `${alive(pair.aId) ? "存" : "亡"}/${alive(pair.bId) ? "存" : "亡"}`;
+      return `${pair.marker}（${colorName(pair.color)}）${status}`;
+    }).join("；");
+    const pairCount = Math.min(3, Math.max(1, Number(state.enemyLinkedBranches.pairLimit) || (state.enemyLinkedBranches.pairs || []).length || 3));
+    return `黑方随机${pairCount}对棋子结为连枝；一子被吃后，另一子继承其移动范围；一对俱亡时黑方随机失去一个道具。${pairs ? `当前：${pairs}。` : ""}`;
+  }
+
+  function colorName(color) {
+    return ({ cyan: "青", magenta: "绯", lime: "翠" })[color] || color;
+  }
+
+  function turtleText(state) {
+    const turtle = state.enemyTurtle;
+    const status = turtle.shield > 0
+      ? `无敌剩余 ${turtle.shield} 回合；再次触发${cooldown(turtle.cooldown)}`
+      : cooldown(turtle.cooldown);
+    return `黑将被吃时取消本次吃将，进入 3 回合无敌，9 回合后可再次龟缩。当前状态：${status}。`;
   }
 
   function enemyItemCards(state) {

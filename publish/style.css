@@ -58,6 +58,27 @@ button:disabled {
   max-width: 100%;
 }
 
+.game-shell.recruit-placement-active {
+  display: block;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.game-shell.recruit-placement-active > * {
+  margin-bottom: 8px;
+}
+
+.game-shell.recruit-placement-active .board-wrap {
+  height: min(520px, 112vw);
+  min-height: 360px;
+  overflow: visible;
+  contain: inline-size;
+}
+
+.game-shell.recruit-placement-active .command-panel {
+  min-height: auto;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -181,6 +202,14 @@ h1 {
 .cell.hint {
   background: rgba(255, 255, 255, 0.22);
   outline: 2px solid rgba(255, 255, 255, 0.52);
+}
+
+.hint-line-mode .cell.hint {
+  background:
+    linear-gradient(90deg, transparent 0 46%, rgba(255, 255, 255, 0.78) 46% 54%, transparent 54%),
+    linear-gradient(0deg, transparent 0 46%, rgba(255, 255, 255, 0.78) 46% 54%, transparent 54%);
+  outline: none;
+  border-radius: 0;
 }
 
 .piece {
@@ -350,8 +379,11 @@ h1 {
   color: #f7e078;
 }
 
-.reward-card span {
-  white-space: normal;
+.reward-card > span {
+  display: block;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 .card-action {

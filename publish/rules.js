@@ -136,6 +136,13 @@ window.XQ.Rules = (() => {
     return moves;
   }
 
+  function pseudoWithLinked(board, piece, state) {
+    const moves = pseudo(board, piece, state);
+    window.XQ.LinkedBranches?.extraTypes?.(state, piece)
+      .forEach((type) => moves.push(...pseudo(board, { ...piece, type }, state)));
+    return [...new Map(moves.map((move) => [`${move.x},${move.y}`, move])).values()];
+  }
+
   function move(board, id, x, y) {
     const next = clone(board);
     const p = next.find((q) => q.id === id);
@@ -155,19 +162,25 @@ window.XQ.Rules = (() => {
   }
 
   function inCheck(board, side, state) {
-    if (state?.mode === "random" && side === "r") return false;
+    if (window.XQ.RandomMode?.is?.(state) && side === "r") return false;
     if (window.XQ.Turtle?.protects?.(state, side)) return false;
     const k = board.find((p) => p.side === side && p.type === "K");
-    if (!k) return state?.mode !== "random";
+    if (!k) return !window.XQ.RandomMode?.is?.(state);
     if (window.XQ.Incense?.protectsKing?.(state, side, k)) return false;
-    return board.some((p) => p.side !== side && !window.XQ.Incense?.blocksRed?.(state, p) && pseudo(board, p, state).some((m) => !window.XQ.RiverFlood.blocks(p, m, state) && m.x === k.x && m.y === k.y));
+    return board.some((p) => p.side !== side && !window.XQ.Karma?.blocks?.(state, p) && !window.XQ.Incense?.blocksRed?.(state, p) && pseudoWithLinked(board, p, state).some((m) => !window.XQ.RiverFlood.blocks(p, m, state) && m.x === k.x && m.y === k.y));
   }
 
   function legalMoves(board, id, state) {
     const p = board.find((q) => q.id === id);
     if (!p) return [];
+    if (window.XQ.Karma?.blocks?.(state, p)) return [];
     if (window.XQ.Incense?.blocksRed?.(state, p)) return [];
-    return pseudo(board, p, state).filter((m) => !window.XQ.Incense?.blocksCapture?.(state, p, m, board) && !window.XQ.RiverFlood.blocks(p, m, state) && !blocksDivineKingCapture(board, m, p, state) && !window.XQ.Turtle?.blocks?.(board, m, p.side, state) && !inCheck(move(board, id, m.x, m.y).board, p.side, state));
+    return pseudoWithLinked(board, p, state).filter((m) => !blocksCharmKing(m, p, state) && !window.XQ.Incense?.blocksCapture?.(state, p, m, board) && !window.XQ.RiverFlood.blocks(p, m, state) && !blocksDivineKingCapture(board, m, p, state) && !window.XQ.Turtle?.blocks?.(board, m, p.side, state) && !inCheck(move(board, id, m.x, m.y).board, p.side, state));
+  }
+
+  function blocksCharmKing(move, piece, state) {
+    return piece.side === "r" && piece.type === "K" && state?.enemyCharm?.blade
+      && (state.charmTiles || []).some((tile) => tile.x === move.x && tile.y === move.y);
   }
 
   function blocksDivineKingCapture(board, m, p, state) {

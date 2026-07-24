@@ -2,7 +2,7 @@ window.XQ = window.XQ || {};
 
 window.XQ.DropMorphs = (() => {
   function apply(state, piece, targetType) {
-    if (state?.mode !== "random" || piece?.side !== "r") return false;
+    if (!window.XQ.RandomMode?.is?.(state) || piece?.side !== "r") return false;
     if (!piece.dropOriginalType) piece.dropOriginalType = piece.type;
     piece.type = targetType;
     return true;
@@ -17,7 +17,7 @@ window.XQ.DropMorphs = (() => {
   }
 
   function restoreState(state) {
-    if (state?.mode !== "random") return;
+    if (!window.XQ.RandomMode?.is?.(state)) return;
     restore(state.board);
     restore(state.capturedRed);
   }

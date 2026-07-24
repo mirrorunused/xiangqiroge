@@ -21,16 +21,25 @@ window.XQ.ModeOpening = (() => {
   }
 
   function random(state) {
-    const levels = window.XQ.ComboOrder.randomLevels(state)
-      .map((entry) => `第${entry.level}关 ${window.XQ.ComboOrder.name(entry.id)}`).join(" → ");
     return show(state, {
       pendingKey: "randomOpeningNoticePending",
       uidKey: "randomOpeningItemUids",
       title: "随机棋初始道具",
       intro: "本轮获得 5 个随机道具，并额外获得将帅出宫、仕出宫：",
-      suffix: `\n\n全子关后随机关卡列表：${levels}`,
       action: "开始布阵",
       text: "确认初始道具后进入随机棋布阵。",
+    });
+  }
+
+  function recruit(state) {
+    return show(state, {
+      pendingKey: "randomOpeningNoticePending",
+      uidKey: "randomOpeningItemUids",
+      title: "招兵买马初始道具",
+      intro: "本轮获得 5 个随机道具，并额外获得将帅出宫、仕出宫：",
+      action: "开始招募",
+      rarity: "gold",
+      text: "确认初始道具后进入自由选子与布阵。",
     });
   }
 
@@ -46,5 +55,5 @@ window.XQ.ModeOpening = (() => {
     });
   }
 
-  return { quick, random, show };
+  return { quick, random, recruit, show };
 })();

@@ -14,7 +14,7 @@ window.XQ.Late = (() => {
     state.dropRefreshLocked = false;
     if (state.level === finalQueenLevel() + 1) addEnemyTrait(state);
     if (state.mode !== "quick" && state.level >= finalQueenLevel() + 2) suppressItems(state);
-    if (state.mode === "rebel") startRebelCombo(state);
+    if (["rebel", "recruit"].includes(state.mode)) startRebelCombo(state);
     else if (state.mode === "random") startRandomCombo(state);
     else startFixedCombo(state);
     if (state.level >= finalQueenLevel() + 4) lockDrops(state);
@@ -23,18 +23,26 @@ window.XQ.Late = (() => {
   function startFixedCombo(state) {
     const offset = state.level - finalQueenLevel();
     applyCombo(state, window.XQ.ComboOrder.fixedAt(offset));
+    if (offset > window.XQ.ComboOrder.offset("sacrifice")) {
+      const step = offset - window.XQ.ComboOrder.offset("sacrifice");
+      applyPostSacrificeFeature(state, step);
+    }
   }
 
   function startRebelCombo(state) {
     const index = state.level - rebelComboStart;
     if (index < 0) return;
-    applyCombo(state, window.XQ.ComboOrder.fixedIds()[index]);
+    const order = window.XQ.ComboOrder.fixedIds();
+    applyCombo(state, order[index]);
+    if (index >= order.length) applyPostSacrificeFeature(state, index - order.length + 1);
   }
 
   function startRandomCombo(state) {
     const index = state.level - rebelComboStart;
     if (index < 0) return;
-    applyCombo(state, window.XQ.ComboOrder.ensureRandom(state)[index]);
+    const order = window.XQ.ComboOrder.ensureRandom(state);
+    applyCombo(state, order[index]);
+    if (index >= order.length) applyPostSacrificeFeature(state, index - order.length + 1);
   }
 
   function rebelComboLevels() {
@@ -58,6 +66,12 @@ window.XQ.Late = (() => {
     if (id === "charmBlade") charmCombo(state, true);
     if (id === "momentum") momentumCombo(state);
     window.XQ.LateExtra.apply(state, id, appendNotice);
+  }
+
+  function applyPostSacrificeFeature(state, step) {
+    const pairLimit = Math.min(3, Math.max(1, Math.ceil((Number(step) || 1) / 2)));
+    state.enemyLinkedBranches = { active: true, pairs: [], pairLimit };
+    appendNotice(state, "机制：连枝。黑方随机配对棋子共享移动能力，配对数量随关卡逐步增加，最多三对。");
   }
 
   function addEnemyTrait(state) {
@@ -132,7 +146,7 @@ window.XQ.Late = (() => {
   function charmCombo(state, blade) {
     state.enemyCharm = { formation: true, blade };
     appendNotice(state, blade
-      ? "组合技关卡：媚骨蚀锋。媚阵生效；每个红方回合刷新 3 个持续一回合的魅惑格，红子踏入即倒戈，且黑方夺取对应棋子道具。"
+      ? "组合技关卡：媚骨蚀锋。媚阵生效；每个红方回合刷新 3 个持续一回合的魅惑格。红帅不能进入魅惑格；其他红子每次进入后倒戈，黑方仅夺取 1 个对应的非消耗品道具。"
       : "组合技关卡：媚阵。黑方吃掉红子后，在吃子棋子后方空位复制一枚同兵种黑子，并获得对应棋子道具，但红方不会失去道具。");
   }
 
@@ -149,6 +163,7 @@ window.XQ.Late = (() => {
 
   function appendNotice(state, text) {
     state.hardNotice = state.hardNotice ? `${state.hardNotice}\n${text}` : text;
+    window.XQ.MoveRecord?.event?.(state, text, "mechanism");
   }
 
   function weighted(items) {
@@ -164,7 +179,7 @@ window.XQ.Late = (() => {
   }
 
   function horseSeriesComplete(state, level = state.level) {
-    const horse4 = state.mode === "rebel" ? rebelComboLevels().find((entry) => entry.id === "horse4")?.level
+    const horse4 = ["rebel", "recruit"].includes(state.mode) ? rebelComboLevels().find((entry) => entry.id === "horse4")?.level
       : state.mode === "random" ? randomComboLevels(state).find((entry) => entry.id === "horse4")?.level
         : finalQueenLevel() + window.XQ.ComboOrder.offset("horse4");
     return level > horse4;

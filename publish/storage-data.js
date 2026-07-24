@@ -9,6 +9,7 @@ window.XQ.StorageData = (() => {
     window.XQ.Mode?.updateRecord?.(state);
     const data = clone(state);
     delete data.history;
+    delete data.moveRecords;
     delete data.legal;
     delete data.selected;
     delete data.previewSelected;

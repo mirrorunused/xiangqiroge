@@ -123,5 +123,5 @@ window.XQ.Incense = (() => {
     return `${x},${y}`;
   }
 
-  return { blocksCapture, blocksRed, draw, protectsKing, startLevel, startTurn };
+  return { blocksCapture, blocksRed, covers: hasTile, draw, protectsKing, startLevel, startTurn };
 })();

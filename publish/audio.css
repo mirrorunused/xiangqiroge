@@ -89,6 +89,12 @@
   color: #fff0bd;
 }
 
+#startRecruitBtn {
+  border-color: #9dc4b7;
+  background: #28594f;
+  color: #e3fff5;
+}
+
 .audio-settings {
   display: grid;
   gap: 10px;

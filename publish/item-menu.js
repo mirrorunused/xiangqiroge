@@ -65,14 +65,14 @@ window.XQ.ItemMenu = (() => {
     const kept = state.keepUids?.includes(item.uid);
     const blocked = state.suppressedItemUids?.includes(item.uid);
     const activeOuter = state.mode === "rebel" && item.outer && item.uid === state.rebelOuterUid;
-    const opening = state.mode === "random" && item.randomLocked;
-    const randomOuter = state.mode === "random" && item.outer;
+      const opening = window.XQ.RandomMode.is(state) && item.randomLocked;
+      const randomOuter = window.XQ.RandomMode.is(state) && item.outer;
     const randomActive = randomOuter && ["banner", "cannon", "mult"].includes(item.id);
     const turtle = item.id === "turtleShell" && !blocked ? turtleStatus(state) : null;
     return {
       ...item,
       name: `${blocked ? "[屏蔽] " : ""}${turtle?.name || ""}${kept ? "[保留] " : ""}${opening ? "[初始] " : ""}${randomActive ? "[生效] " : randomOuter ? "[停用] " : activeOuter ? "[带入] " : item.outer ? "[局外] " : ""}${item.name}`,
-      text: blocked ? `${item.text} 本关效果被屏蔽，暂不可出售。` : opening ? `${item.text} 本轮初始道具，不可出售。` : randomOuter && !randomActive ? `${item.text} 随机棋模式仅启用积分加成类局外道具。` : `${item.text}${turtle?.text || ""}${window.XQ.ConsumableState.status(item)}`,
+      text: blocked ? `${item.text} 本关效果被屏蔽，暂不可出售。` : opening ? `${item.text} 本轮初始道具，不可出售。` : randomOuter && !randomActive ? `${item.text} 随机棋与招兵买马模式仅启用积分加成类局外道具。` : `${item.text}${turtle?.text || ""}${window.XQ.ConsumableState.status(item)}`,
       actions: blocked || opening || item.outer || item.id.startsWith("morph-") ? [] : [{ id: "sell", label: "出售" }],
     };
   }

@@ -20,7 +20,9 @@ window.XQ.ComboNav = (() => {
     music: ["迷音", "red", "每 3 回合临时控制红方棋子，第 6 回合起每次控制两枚。"],
     incense: ["香阵", "red", "扩张香阵冻结红子并保护阵内黑子。"],
     momentum: ["盈不可久", "red", "红方每次吃子会使黑方下次多走一步，最多累计 2 步。"],
-    sacrifice: ["生祭", "red", "黑方可献祭己子换取随机道具，并每 2 回合增兵。"],
+    karma: ["业障", "red", "同一红子累计吃子会依次遭到封锁、失去道具和阵亡惩罚。"],
+    linkedBranches: ["连枝", "red", "黑方三对棋子相连，一子阵亡后另一子继承其移动范围。"],
+    sacrifice: ["生祭", "red", "黑方每次吃子获得随机道具，且可以吃己方非将棋子；每 2 回合增兵。"],
   };
 
   function card(id, level) {
@@ -29,7 +31,7 @@ window.XQ.ComboNav = (() => {
   }
 
   function cards(state) {
-    if (state.mode === "rebel") {
+    if (["rebel", "recruit"].includes(state.mode)) {
       return window.XQ.Late.rebelComboLevels(state).map((entry) => card(entry.id, entry.level));
     }
     if (state.mode === "random") return window.XQ.Late.randomComboLevels(state).map((entry) => card(entry.id, entry.level));
@@ -47,12 +49,20 @@ window.XQ.ComboNav = (() => {
   }
 
   function openTest(state, actions) {
-    const testCards = [{ id: "grant-score", name: "获得积分", rarity: "red", text: "测试用：立即获得 5000 积分。" }].concat(cards(state));
+    const testCards = [
+      { id: "grant-score", name: "获得积分", rarity: "red", text: "测试用：立即获得 5000 积分。" },
+      { id: "grant-slot", name: "获得私库搜寻次数", rarity: "gold", text: "测试用：立即获得 1 次私库搜寻次数。" },
+    ].concat(cards(state));
     window.XQ.Render.showCards("测试入口", `当前第 ${state.level} 关。`, testCards, async (card) => {
       window.XQ.Render.hideRewards();
       if (card.id === "grant-score") {
         await actions.grant();
         window.XQ.Render.banner("测试积分 +5000");
+        return;
+      }
+      if (card.id === "grant-slot") {
+        await actions.grantSlot();
+        window.XQ.Render.banner("测试私库搜寻次数 +1");
         return;
       }
       await actions.jump(card.level);

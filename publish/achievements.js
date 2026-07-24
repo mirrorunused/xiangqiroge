@@ -5,7 +5,8 @@ window.XQ.Achievements = (() => {
     turtle: "龟缩", fish: "鱼水", rabbit: "兔阵", divine: "神选", collapse: "崩盘",
     eunuch: "宦潮", charmFormation: "媚阵", horse1: "纵马1", horse2: "纵马2",
     reinforcement: "增援", charmBlade: "媚骨蚀锋", horse3: "纵马3", corruption: "染心",
-    horse4: "纵马4", music: "迷音", incense: "香阵", momentum: "盈不可久", sacrifice: "生祭",
+    horse4: "纵马4", music: "迷音", incense: "香阵", momentum: "盈不可久",
+    karma: "业障", linkedBranches: "连枝", sacrifice: "生祭",
   };
   const REWARDS = {
     turtle: ["turtleShell", "龟壳"],
@@ -16,7 +17,7 @@ window.XQ.Achievements = (() => {
     momentum: ["endure", "卧薪尝胆"],
   };
   const EXTRA = [
-    ["firstDefeat", "败而知进", "首次战败", "解锁局外双步虎符、道具图鉴与随机棋模式"],
+    ["firstDefeat", "败而知进", "首次战败", "解锁局外双步虎符、道具图鉴、随机棋与招兵买马模式"],
     ["bishop", "异制初启", "完成首次征程结算", "开放主教改制购买"],
     ["queen", "后仪临阵", "完成第二次征程结算", "开放皇后改制购买"],
     ["rebelRescue", "破狱救援", "义军破敌推进至组合技阶段", "解锁关押剧情与义军兵败剧情图鉴"],
@@ -44,10 +45,14 @@ window.XQ.Achievements = (() => {
     const id = comboId(state);
     if (!COMBOS[id]) return [];
     const messages = mark(state, `combo-${id}`, `义军成就“破阵·${COMBOS[id]}”`);
+    if (!messages.length) return messages;
     const reward = REWARDS[id];
     if (reward && !state.talents.shopUnlocks[reward[0]]) {
       state.talents.shopUnlocks[reward[0]] = true;
       messages.push(`成就奖励：已解锁${reward[1]}。`);
+    } else if (!reward) {
+      window.XQ.Progression.grantSlotUse(state);
+      messages.push("成就奖励：私库搜寻次数 +1。");
     }
     return messages;
   }
@@ -82,7 +87,7 @@ window.XQ.Achievements = (() => {
       )))
       .concat(window.XQ.ComboOrder.fixedIds().map((id) => card(
         `combo-${id}`, `破阵·${COMBOS[id]}`, `义军破敌通关组合技“${COMBOS[id]}”`,
-        REWARDS[id] ? `解锁${REWARDS[id][1]}` : "",
+        REWARDS[id] ? `解锁${REWARDS[id][1]}` : "1 次私库搜寻次数",
         completed[`combo-${id}`],
       )));
   }
@@ -164,7 +169,7 @@ window.XQ.Achievements = (() => {
   function card(id, name, condition, reward, done) {
     return {
       id, name: `${done ? "[已完成]" : "[未完成]"} ${name}`, rarity: done ? "gold" : "white",
-      text: reward ? `${condition}。奖励：${reward}。` : `${condition}。`, done: Boolean(done),
+      text: done && reward ? `${condition}。奖励：${reward}。` : `${condition}。`, done: Boolean(done),
     };
   }
 

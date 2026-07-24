@@ -6,6 +6,7 @@ window.XQ.Storage = (() => {
     normal: "xiangqi-rogue-save-normal",
     rebel: "xiangqi-rogue-save-rebel",
     random: "xiangqi-rogue-save-random",
+    recruit: "xiangqi-rogue-save-recruit",
     quick: "xiangqi-rogue-save-quick",
   };
   const MANUAL_PREFIX = "xiangqi-rogue-manual-";
@@ -32,14 +33,14 @@ window.XQ.Storage = (() => {
     if (migrated) return;
     if (migrationTask) return migrationTask;
     migrationTask = (async () => {
-      const [legacy, normal, rebel, random, quick, shared] = await Promise.all([
-        read(LEGACY_KEY), read(MODE_KEYS.normal), read(MODE_KEYS.rebel), read(MODE_KEYS.random), read(MODE_KEYS.quick), read(SHARED_KEY),
+      const [legacy, normal, rebel, random, recruit, quick, shared] = await Promise.all([
+        read(LEGACY_KEY), read(MODE_KEYS.normal), read(MODE_KEYS.rebel), read(MODE_KEYS.random), read(MODE_KEYS.recruit), read(MODE_KEYS.quick), read(SHARED_KEY),
       ]);
       const legacyMode = modeName(legacy?.mode);
       if (legacy && !(legacyMode === "normal" ? normal : rebel)) {
         await write(MODE_KEYS[legacyMode], Data.packMode(legacy));
       }
-      const source = [legacy, normal, rebel, random, quick].filter(Boolean).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)).pop();
+      const source = [legacy, normal, rebel, random, recruit, quick].filter(Boolean).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)).pop();
       if (!shared && source) await write(SHARED_KEY, Data.sharedFrom(source));
       if (legacy) await remove(LEGACY_KEY);
       migrated = true;
@@ -66,7 +67,7 @@ window.XQ.Storage = (() => {
     const preferred = modeName(shared?.activeMode);
     const first = await getMode(preferred);
     if (first) return first;
-    for (const mode of ["normal", "rebel", "random", "quick"]) {
+    for (const mode of ["normal", "rebel", "random", "recruit", "quick"]) {
       if (mode !== preferred) {
         const fallback = await getMode(mode);
         if (fallback) return fallback;

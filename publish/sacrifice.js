@@ -8,10 +8,13 @@ window.XQ.Sacrifice = (() => {
       && target?.side === "b" && target.type !== "K" && mover.id !== target.id);
   }
 
-  function onOwnCapture(state, captured) {
-    if (!state.enemySacrifice?.active || captured?.side !== "b") return "";
+  function onCapture(state, moverSide, captured) {
+    if (!state.enemySacrifice?.active || moverSide !== "b" || !["r", "b"].includes(captured?.side)) return "";
     const item = window.XQ.EnemyItems.grantRandom(state);
-    return item ? `生祭：黑方献祭${label(captured.type)}，获得${item}` : `生祭：黑方献祭${label(captured.type)}`;
+    const target = captured.side === "b"
+      ? `己方${label(captured.type)}`
+      : `红方${window.XQ.Config.labels?.r?.[captured.type] || captured.type}`;
+    return item ? `生祭：黑方吃掉${target}，获得${item}` : `生祭：黑方吃掉${target}`;
   }
 
   function startLevel(state) {
@@ -68,5 +71,5 @@ window.XQ.Sacrifice = (() => {
     return `${x},${y}`;
   }
 
-  return { canCaptureOwn, onOwnCapture, startLevel, startTurn };
+  return { canCaptureOwn, onCapture, startLevel, startTurn };
 })();

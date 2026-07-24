@@ -62,6 +62,8 @@ window.XQ.ConsumableState = (() => {
     state[rule.field] -= 1;
     item.value = Math.max(0, (Number(item.value) || rule.size) - 1);
     if (item.value === 0) state.items = state.items.filter((entry) => entry.uid !== item.uid);
+    const name = window.XQ.Config.randomItems.find((entry) => entry.id === id)?.name || id;
+    window.XQ.MoveRecord?.event?.(state, `消耗${name}，剩余 ${state[rule.field]} 次`, "item");
     return true;
   }
 

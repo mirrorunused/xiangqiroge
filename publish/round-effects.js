@@ -7,6 +7,8 @@ window.XQ.RoundEffects = (() => {
       window.XQ.MusicCharm?.startLevel?.(state),
       window.XQ.Reinforcement?.startLevel?.(state),
       window.XQ.Incense?.startLevel?.(state),
+      window.XQ.Karma?.startLevel?.(state),
+      window.XQ.LinkedBranches?.startLevel?.(state),
       window.XQ.Sacrifice?.startLevel?.(state),
     ].filter(Boolean).join("\n");
   }
@@ -17,6 +19,7 @@ window.XQ.RoundEffects = (() => {
       window.XQ.MusicCharm?.startTurn?.(state),
       window.XQ.Reinforcement?.startTurn?.(state),
       window.XQ.Incense?.startTurn?.(state),
+      window.XQ.Karma?.startTurn?.(state),
       window.XQ.Sacrifice?.startTurn?.(state),
     ].filter(Boolean).join("\n");
   }
@@ -24,7 +27,7 @@ window.XQ.RoundEffects = (() => {
   function skipPlayerTurn(state) {
     return [window.XQ.Corruption?.skipTurn?.(state), window.XQ.MusicCharm?.startTurn?.(state),
       window.XQ.Reinforcement?.startTurn?.(state), window.XQ.Incense?.startTurn?.(state),
-      window.XQ.Sacrifice?.startTurn?.(state)]
+      window.XQ.Karma?.startTurn?.(state), window.XQ.Sacrifice?.startTurn?.(state)]
       .filter(Boolean).join("\n");
   }
 

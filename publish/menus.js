@@ -89,7 +89,7 @@ window.XQ.Menus = (() => {
   }
 
   async function unfinishedBattles() {
-    const modes = ["normal", "rebel", "random", "quick"];
+    const modes = ["normal", "rebel", "random", "recruit", "quick"];
     try {
       const saves = await Promise.all(modes.map((mode) => Store.getMode(mode)));
       return modes.filter((_mode, index) => saves[index]?.battleInProgress);
@@ -120,15 +120,16 @@ window.XQ.Menus = (() => {
   }
 
   async function load(current, done) {
-    const autos = await Promise.all([Store.getMode("normal"), Store.getMode("rebel"), Store.getMode("random")]);
+    const autos = await Promise.all([Store.getMode("normal"), Store.getMode("rebel"), Store.getMode("random"), Store.getMode("recruit")]);
     const saves = await Promise.all([1, 2, 3].map((slot) => Store.getManual(slot)));
     const cards = [
       { id: "normal", mode: "normal", name: "读取常规自动存档", rarity: "gold", text: Store.describe(autos[0]) },
       { id: "rebel", mode: "rebel", name: "读取义军自动存档", rarity: "red", text: Store.describe(autos[1]) },
       { id: "random", mode: "random", name: "读取随机棋自动存档", rarity: "purple", text: Store.describe(autos[2]) },
+      { id: "recruit", mode: "recruit", name: "读取招兵买马自动存档", rarity: "gold", text: Store.describe(autos[3]) },
     ]
       .concat([1, 2, 3].map((slot, index) => ({ id: slot, name: `读取手动存档 ${slot}`, rarity: "green", text: Store.describe(saves[index]) })));
-    UI.showCards("读取存档", "三种模式自动存档相互独立，手动存档仍可保存任一模式。", cards, async (card) => {
+    UI.showCards("读取存档", "四种模式自动存档相互独立，手动存档仍可保存任一模式。", cards, async (card) => {
       if (card.mode) {
         const loaded = await Store.getMode(card.mode);
         if (!loaded) return UI.banner(`${modeLabel(card.mode)}自动存档为空`);
@@ -150,11 +151,11 @@ window.XQ.Menus = (() => {
   }
 
   function modeLabel(mode) {
-    return mode === "rebel" ? "义军" : mode === "random" ? "随机棋" : mode === "quick" ? "快速" : "常规";
+    return mode === "rebel" ? "义军" : mode === "random" ? "随机棋" : mode === "recruit" ? "招兵买马" : mode === "quick" ? "快速" : "常规";
   }
 
   function battleModeLabel(mode) {
-    return mode === "rebel" ? "义军破敌" : mode === "random" ? "随机棋模式" : mode === "quick" ? "快速模式" : "常规模式";
+    return mode === "rebel" ? "义军破敌" : mode === "random" ? "随机棋模式" : mode === "recruit" ? "招兵买马模式" : mode === "quick" ? "快速模式" : "常规模式";
   }
 
   return { load, save, shop, showItems, talent };

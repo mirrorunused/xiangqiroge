@@ -38,6 +38,7 @@ body {
 .ui-switch-btn {
   color: #d8c08a;
   font-size: 20px;
+  display: none !important;
 }
 
 .topbar h1 {

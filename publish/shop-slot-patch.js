@@ -37,7 +37,7 @@ window.XQ = window.XQ || {};
     if (!value?.shop || value.shop.sharedReviveSlot) return;
     const original = value.shop;
     const wrapped = function wrappedShop(level, state) {
-      if (!["rebel", "random"].includes(state?.mode)) return original.call(this, level, state);
+      if (!["rebel", "random", "recruit"].includes(state?.mode)) return original.call(this, level, state);
       const captured = state.capturedRed;
       let cards;
       try {

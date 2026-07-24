@@ -107,6 +107,28 @@
   box-shadow: inset 0 0 0 2px rgba(240, 182, 90, 0.24);
 }
 
+.recruit-piece-control {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 4px;
+}
+
+.recruit-piece-control button {
+  min-width: 0;
+  padding: 5px 2px;
+  font-size: 13px;
+}
+
+.random-reserve.recruiting {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 420px) {
+  .random-reserve.recruiting {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .random-placement-actions button {
   flex: 1;
 }

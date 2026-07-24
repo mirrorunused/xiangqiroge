@@ -35,8 +35,10 @@ window.XQ.QuickMode = (() => {
   }
 
   function settleWin(state) {
+    if (state.phase === "quick-won") return { rewards: [], unlocked: [] };
     const points = 1000;
     state.score += points;
+    window.XQ.Progression.grantSlotUse(state);
     state.phase = "quick-won";
     state.message = "快速模式胜利";
     state.pendingRewards = [];
@@ -53,7 +55,7 @@ window.XQ.QuickMode = (() => {
   function showEnd(state, won, leave, unlocked = []) {
     const title = won ? "快速模式胜利" : "快速模式结束";
     const result = won
-      ? `固定胜利奖励 +1000 积分。当前积分 ${state.score}。`
+      ? `固定胜利奖励 +1000 积分，私库搜寻次数 +1。当前积分 ${state.score}。`
       : `本局挑战结束。当前积分 ${state.score}。`;
     const intro = `${result}${unlocked.join("")}`;
     window.XQ.Render.showCards(title, intro, [{

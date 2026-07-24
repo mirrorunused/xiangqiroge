@@ -18,7 +18,7 @@ window.XQ.Battle = {
         window.XQ.BoardPreview.clear(s);
         s.selected = id;
         s.legal = R.legalMoves(s.board, id, s);
-        s.message = s.legal.length ? "选择落点" : "这枚棋子当前无合法走法";
+        s.message = s.legal.length ? "选择落点" : R.inCheck(s.board, "r", s) ? "红帅正被将军；这枚棋子当前没有合法解围走法" : "这枚棋子当前无合法走法";
         options.render();
       });
     }
@@ -28,6 +28,7 @@ window.XQ.Battle = {
         const result = await handler(s, piece);
         if (!result) continue;
         if (result.changed || result.killed) {
+          window.XQ.MoveRecord?.event?.(s, s.message, "item");
           options.render();
           await options.saveNow();
           await checkOutcome();
@@ -69,8 +70,9 @@ window.XQ.Battle = {
     async function applyMove(id, x, y, side) {
       const s = state();
       const result = R.move(s.board, id, x, y);
+      const mover = s.board.find((piece) => piece.id === id);
       s.board = result.board;
-      s.lastMove = { id, x, y, from: result.from, side, captured: null };
+      s.lastMove = { id, x, y, from: result.from, side, piece: mover ? { side: mover.side, type: mover.type } : null, captured: null };
       s.lastActionCaptured = false;
       let text = "", story = "", charmText = "";
       if (result.captured) {
@@ -80,23 +82,26 @@ window.XQ.Battle = {
           s.lastActionCaptured = true;
           if (side === "r" && result.captured.side === "b") {
             s.score += window.XQ.Items.captureScore(s, result.captured.type); const seen = s.mode === "rebel" && s.level > 15 ? s.postRescueStorySeen : s.captureStorySeen;
-            if (!["random", "quick"].includes(s.mode) && !seen.includes(result.captured.type)) {
+            if (!["random", "recruit", "quick"].includes(s.mode) && !seen.includes(result.captured.type)) {
               seen.push(result.captured.type);
               story = result.captured.type;
             }
             if (s.enemyMomentum?.active) s.enemyBonusMoves = Math.min(2, (s.enemyBonusMoves || 0) + 1);
-            charmText = window.XQ.Corruption?.onRedCapture?.(s, id) || "";
+            charmText = [window.XQ.LinkedBranches?.onBlackCaptured?.(s, result.captured), window.XQ.Karma?.onRedCapture?.(s, id), window.XQ.Corruption?.onRedCapture?.(s, id)].filter(Boolean).join("\n");
           } else if (side === "b" && result.captured.side === "r") {
             window.XQ.Mode.redCaptured(s, result.captured);
-            charmText = [window.XQ.Charm?.onBlackCapture?.(s, result, id), window.XQ.Corruption?.onBlackCapture?.(s, id)].filter(Boolean).join("\n");
-          } else if (side === "b" && result.captured.side === "b") charmText = window.XQ.Sacrifice?.onOwnCapture?.(s, result.captured) || "";
+            charmText = [window.XQ.Charm?.onBlackCapture?.(s, result, id), window.XQ.Corruption?.onBlackCapture?.(s, id), window.XQ.Sacrifice?.onCapture?.(s, side, result.captured)].filter(Boolean).join("\n");
+          } else if (side === "b" && result.captured.side === "b") charmText = [window.XQ.LinkedBranches?.onBlackCaptured?.(s, result.captured), window.XQ.Sacrifice?.onCapture?.(s, side, result.captured)].filter(Boolean).join("\n");
         }
         FX.tone(side === "r" ? 520 : 220, 80);
       } else FX.tone(side === "r" ? 360 : 180, 45);
       s.lastMove.captured = s.lastActionCaptured ? { ...result.captured } : null;
-      const tileText = text ? "" : (window.XQ.Charm?.onRedMove?.(s, id) || window.XQ.Collapse?.enter?.(s, id, side) || "");
-      const dropText = text || tileText ? "" : await D.collect(s, id, side);
-      text = [text, charmText, tileText, dropText].filter(Boolean).join("\n");
+      window.XQ.MoveRecord.add(s, s.lastMove);
+      const moverAlive = s.board.some((piece) => piece.id === id);
+      const tileText = text || !moverAlive ? "" : (window.XQ.Charm?.onRedMove?.(s, id) || window.XQ.Collapse?.enter?.(s, id, side) || "");
+      const dropText = text || tileText || !moverAlive ? "" : await D.collect(s, id, side); const mechanismText = [text, charmText, tileText].filter(Boolean).join("\n");
+      window.XQ.MoveRecord?.effect?.(s, mechanismText, "mechanism"); window.XQ.MoveRecord?.effect?.(s, dropText, "item");
+      text = [mechanismText, dropText].filter(Boolean).join("\n");
       return { text, story };
     }
     function finishRed() {
@@ -111,7 +116,7 @@ window.XQ.Battle = {
         s.message = flow.reason === "meteor" ? `飒沓流星反噬：黑方将连续行动 ${s.enemyMovesLeft} 步`
           : s.enemyMovesLeft > 1 ? `盈不可久：黑方将连续行动 ${s.enemyMovesLeft} 步` : "黑方思考中";
       }
-      if (flow.notice) UI.banner(flow.notice);
+      if (flow.notice) { window.XQ.MoveRecord?.effect?.(s, flow.notice, "mechanism"); UI.banner(flow.notice); }
       options.render();
     }
     async function enemyTurn() {
@@ -138,7 +143,7 @@ window.XQ.Battle = {
     }
     function skipEnemy(s) {
       s.enemyFrozen -= 1;
-      s.enemyMovesLeft = 0;
+      s.enemyMovesLeft = 0; window.XQ.MoveRecord?.event?.(s, "冻结生效，黑方跳过行动", "item");
       startPlayer(s, "冻结生效，黑方跳过行动");
     }
     function finishEnemy(s) {
@@ -151,6 +156,7 @@ window.XQ.Battle = {
         s.playerFrozen -= 1;
         s.enemyMovesLeft = 0;
         s.message = ["冻结生效，红方跳过行动", window.XQ.RoundEffects?.skipPlayerTurn?.(s)].filter(Boolean).join("\n");
+        window.XQ.MoveRecord?.event?.(s, s.message, "mechanism");
         D.spawn(s, false);
       } else {
         startPlayer(s, R.inCheck(s.board, "r", s) ? "红帅被将军，先解围" : "红方行动");
@@ -165,7 +171,7 @@ window.XQ.Battle = {
       const meteor = window.XQ.Meteor.startTurn(s);
       D.spawn(s, false);
       const round = window.XQ.RoundEffects?.startTurn?.(s);
-      s.message = [message, note, meteor, round].filter(Boolean).join("\n");
+      s.message = [message, note, meteor, round].filter(Boolean).join("\n"); window.XQ.MoveRecord?.event?.(s, [note, meteor, round].filter(Boolean).join("\n"), meteor ? "item" : "mechanism");
     }
     async function checkOutcome() {
       const s = state();

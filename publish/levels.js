@@ -16,13 +16,13 @@ window.XQ.Levels = (() => {
   function buildBoard(level, state) {
     let index = 0;
     const board = [];
-    if (state?.mode !== "random") C.redSetup.forEach(([type, x, y]) => board.push(piece("r", type, x, y, index++)));
+    if (!window.XQ.RandomMode?.is?.(state)) C.redSetup.forEach(([type, x, y]) => board.push(piece("r", type, x, y, index++)));
     C.blackCore.forEach(([type, x, y]) => board.push(piece("b", type, x, y, index++)));
     C.blackAddOrder.slice(0, enemyCount(level)).forEach(([type, x, y]) => {
       board.push(piece("b", type, x, y, index++));
     });
     if (isFullEnemy(level)) window.XQ.EnemyStages.apply(board, level, C.blackAddOrder.length);
-    if (state?.mode === "random") return window.XQ.RandomMode.carryBoard(state, board);
+    if (window.XQ.RandomMode?.is?.(state)) return window.XQ.RandomMode.carryBoard(state, board);
     if (state?.mode === "rebel") {
       const lost = new Set((state.capturedRed || []).map((entry) => entry.id));
       return board.filter((entry) => entry.side !== "r" || !lost.has(entry.id));
@@ -42,12 +42,13 @@ window.XQ.Levels = (() => {
       playerMovesLeft: 1,
       phase: "play",
       lastMove: null,
+      moveRecords: [],
       history: [],
       fieldItems: [],
       capturedRed: [], levelStartCapturedRed: null,
       shop: null, freeRefreshes: 0,
       enemyFrozen: 0, playerFrozen: 0,
-      enemyTraits: {}, enemyTurtle: null, enemyRabbit: null, enemyDivine: null, enemyCollapse: null, enemyFish: null, enemyEunuch: false, enemyHorse: 0, enemyCharm: null, enemyCorruption: null, enemyMusic: null, enemyReinforcement: null, enemyIncense: null, enemySacrifice: null, charmTiles: [], incenseTiles: [], collapseTiles: [], hardNotice: "", tempoNotice: false, tempoDeclined: false, suppressedItemUids: [], dropRefreshLocked: false, currentComboId: null,
+      enemyTraits: {}, enemyTurtle: null, enemyRabbit: null, enemyDivine: null, enemyCollapse: null, enemyFish: null, enemyEunuch: false, enemyHorse: 0, enemyCharm: null, enemyCorruption: null, enemyMusic: null, enemyReinforcement: null, enemyIncense: null, enemyKarma: null, enemyLinkedBranches: null, enemySacrifice: null, charmTiles: [], incenseTiles: [], collapseTiles: [], hardNotice: "", tempoNotice: false, tempoDeclined: false, suppressedItemUids: [], dropRefreshLocked: false, currentComboId: null,
       baseReward: 100,
       lastSettlement: null,
       bestRecord: { level: 1, score: 0 },
@@ -58,8 +59,8 @@ window.XQ.Levels = (() => {
       pendingMorph: null, pendingRevive: null,
       pendingDestroy: false, pendingWeaken: false, charmMakeupCharges: 0,
       message: "红方行动",
-      mode: "normal", battleInProgress: false, rebelOuterUid: null,
-      bestRecords: { normal: { level: 1, score: 0 }, rebel: { level: 1, score: 0 }, random: { level: 1, score: 0 } },
+      mode: "normal", battleInProgress: false, rebelOuterUid: null, slotUsePending: false,
+      bestRecords: { normal: { level: 1, score: 0 }, rebel: { level: 1, score: 0 }, random: { level: 1, score: 0 }, recruit: { level: 1, score: 0 } },
       settings: { captureStoryMode: "story", rebelDefeatStory: true, rebelEarlyDefeatStory: true },
       captureStorySeen: [], postRescueStorySeen: [], rebelComboOrder: [], randomComboOrder: [],
       enemyBonusMoves: 0, enemyMovesLeft: 0, playerBonusMoves: 0, enemyMomentum: null,
@@ -75,7 +76,7 @@ window.XQ.Levels = (() => {
     merged.levelStartCapturedRed = (Array.isArray(saved?.levelStartCapturedRed) ? saved.levelStartCapturedRed : merged.capturedRed).map((piece) => ({ ...piece }));
     merged.shop = merged.shop || null; merged.freeRefreshes = merged.freeRefreshes || 0;
     merged.enemyFrozen = merged.enemyFrozen || 0; merged.playerFrozen = merged.playerFrozen || 0;
-    merged.enemyTraits = merged.enemyTraits || {}; merged.enemyTurtle = merged.enemyTurtle || null; merged.enemyRabbit = merged.enemyRabbit || null; merged.enemyDivine = merged.enemyDivine || null; merged.enemyCollapse = merged.enemyCollapse || null; merged.enemyFish = merged.enemyFish || null; merged.enemyEunuch = Boolean(merged.enemyEunuch); merged.enemyHorse = merged.enemyHorse || 0; merged.enemyCharm = merged.enemyCharm || null; merged.enemyCorruption = merged.enemyCorruption || null; merged.enemyMusic = merged.enemyMusic || null; merged.enemyReinforcement = merged.enemyReinforcement || null; merged.enemyIncense = merged.enemyIncense || null; merged.enemySacrifice = merged.enemySacrifice || null; merged.charmTiles = merged.charmTiles || []; merged.incenseTiles = merged.incenseTiles || []; merged.collapseTiles = merged.collapseTiles || []; merged.hardNotice = merged.hardNotice || ""; merged.tempoNotice = Boolean(merged.tempoNotice); merged.tempoDeclined = Boolean(merged.tempoDeclined); merged.suppressedItemUids = merged.suppressedItemUids || []; merged.dropRefreshLocked = Boolean(merged.dropRefreshLocked); merged.currentComboId = merged.currentComboId || null;
+    merged.enemyTraits = merged.enemyTraits || {}; merged.enemyTurtle = merged.enemyTurtle || null; merged.enemyRabbit = merged.enemyRabbit || null; merged.enemyDivine = merged.enemyDivine || null; merged.enemyCollapse = merged.enemyCollapse || null; merged.enemyFish = merged.enemyFish || null; merged.enemyEunuch = Boolean(merged.enemyEunuch); merged.enemyHorse = merged.enemyHorse || 0; merged.enemyCharm = merged.enemyCharm || null; merged.enemyCorruption = merged.enemyCorruption || null; merged.enemyMusic = merged.enemyMusic || null; merged.enemyReinforcement = merged.enemyReinforcement || null; merged.enemyIncense = merged.enemyIncense || null; merged.enemyKarma = merged.enemyKarma || null; merged.enemyLinkedBranches = merged.enemyLinkedBranches || null; merged.enemySacrifice = merged.enemySacrifice || null; merged.charmTiles = merged.charmTiles || []; merged.incenseTiles = merged.incenseTiles || []; merged.collapseTiles = merged.collapseTiles || []; merged.hardNotice = merged.hardNotice || ""; merged.tempoNotice = Boolean(merged.tempoNotice); merged.tempoDeclined = Boolean(merged.tempoDeclined); merged.suppressedItemUids = merged.suppressedItemUids || []; merged.dropRefreshLocked = Boolean(merged.dropRefreshLocked); merged.currentComboId = merged.currentComboId || null;
     merged.baseReward = typeof merged.baseReward === "number" ? merged.baseReward : 100; merged.levelStartScore = typeof merged.levelStartScore === "number" ? merged.levelStartScore : merged.score || 0;
     merged.bestRecord = merged.bestRecord || { level: merged.level || 1, score: merged.score || 0 };
     merged.keepUids = merged.keepUids || [];
@@ -86,7 +87,7 @@ window.XQ.Levels = (() => {
     merged.captureStorySeen = Array.isArray(merged.captureStorySeen) ? merged.captureStorySeen : []; merged.postRescueStorySeen = Array.isArray(merged.postRescueStorySeen) ? merged.postRescueStorySeen : []; merged.rebelComboOrder = Array.isArray(merged.rebelComboOrder) ? merged.rebelComboOrder : []; merged.randomComboOrder = Array.isArray(merged.randomComboOrder) ? merged.randomComboOrder : [];
     merged.enemyBonusMoves = Math.min(2, Math.max(0, merged.enemyBonusMoves || 0)); merged.enemyMovesLeft = Math.max(0, merged.enemyMovesLeft || 0); merged.playerBonusMoves = Math.min(1, Math.max(0, merged.playerBonusMoves || 0)); merged.enemyMomentum = merged.enemyMomentum || null;
     merged.meteorPending = Boolean(merged.meteorPending); merged.meteorActive = Boolean(merged.meteorActive); merged.meteorPenaltyPending = Boolean(merged.meteorPenaltyPending); merged.enemyTurnSource = merged.enemyTurnSource || null;
-    merged.riverFlooded = Boolean(merged.riverFlooded); merged.battleInProgress = Boolean(merged.battleInProgress); delete merged.playerRiverDebt; delete merged.enemyRiverDebt;
+    merged.riverFlooded = Boolean(merged.riverFlooded); merged.battleInProgress = Boolean(merged.battleInProgress); merged.slotUsePending = Boolean(merged.slotUsePending); delete merged.playerRiverDebt; delete merged.enemyRiverDebt;
     window.XQ.Meteor?.normalize?.(merged);
     window.XQ.Mode?.ensure?.(merged);
     window.XQ.Progression?.ensure?.(merged);
@@ -95,9 +96,10 @@ window.XQ.Levels = (() => {
     return merged;
   }
   function startLevel(state) {
-    state.riverFlooded = false;
-    state.enemyTraits = window.XQ.EnemyTraits.roll(state); state.enemyTurtle = null; state.enemyRabbit = null; state.enemyDivine = null; state.enemyCollapse = null; state.enemyFish = null; state.enemyEunuch = false; state.enemyHorse = 0; state.enemyCharm = null; state.enemyCorruption = null; state.enemyMusic = null; state.enemyReinforcement = null; state.enemyIncense = null; state.enemySacrifice = null; state.enemyMomentum = null; state.charmTiles = []; state.incenseTiles = []; state.collapseTiles = []; state.suppressedItemUids = []; state.currentComboId = null;
-    state.hardNotice = isHard(state.level) ? `第 ${state.level} 关为强敌关：黑方开局拥有${window.XQ.EnemyTraits.text(state.enemyTraits).replace(" · ", "") || "铁壁营"}。` : ""; window.XQ.Late?.startLevel?.(state);
+    state.moveRecords = []; state.riverFlooded = false;
+    state.enemyTraits = window.XQ.EnemyTraits.roll(state); state.enemyTurtle = null; state.enemyRabbit = null; state.enemyDivine = null; state.enemyCollapse = null; state.enemyFish = null; state.enemyEunuch = false; state.enemyHorse = 0; state.enemyCharm = null; state.enemyCorruption = null; state.enemyMusic = null; state.enemyReinforcement = null; state.enemyIncense = null; state.enemyKarma = null; state.enemyLinkedBranches = null; state.enemySacrifice = null; state.enemyMomentum = null; state.charmTiles = []; state.incenseTiles = []; state.collapseTiles = []; state.suppressedItemUids = []; state.currentComboId = null;
+    state.hardNotice = isHard(state.level) ? `第 ${state.level} 关为强敌关：黑方开局拥有${window.XQ.EnemyTraits.text(state.enemyTraits).replace(" · ", "") || "铁壁营"}。` : "";
+    if (state.hardNotice) window.XQ.MoveRecord?.event?.(state, state.hardNotice, "mechanism"); window.XQ.Late?.startLevel?.(state);
     state.board = buildBoard(state.level, state);
     if (state.enemyEunuch) state.board.filter((p) => p.side === "b" && (p.id.startsWith("bP") || p.id.startsWith("bB"))).forEach((p) => { p.type = "A"; });
     if (state.enemyHorse) state.board.filter((p) => p.side === "b" && p.id.startsWith("bP")).slice(0, state.enemyHorse + 1).forEach((p) => { p.type = "N"; });
@@ -107,8 +109,7 @@ window.XQ.Levels = (() => {
     state.side = "r";
     state.selected = null; state.previewSelected = null; state.pendingRevive = null; state.pendingDestroy = false; state.pendingWeaken = false; state.pendingDonate = false; state.pendingMorph = null;
     state.legal = [];
-    state.phase = "play";
-    state.lastMove = null;
+    state.phase = "play"; state.lastMove = null;
     state.history = []; state.fieldItems = []; if (state.mode === "normal") state.capturedRed = []; state.shop = null; state.collapseTiles = state.collapseTiles || [];
     state.enemyFrozen = 0; state.playerFrozen = 0; state.enemyBonusMoves = 0; state.enemyMovesLeft = 0; state.playerBonusMoves = 0; state.rabbitFootCooldown = 0; state.playerTurtle = null; window.XQ.Turtle.sync(state);
     state.baseReward = 100; state.levelStartScore = state.score;
@@ -118,8 +119,7 @@ window.XQ.Levels = (() => {
     state.playerMovesLeft = hasTempo(state) ? 2 : 1;
     state.message = hasTempo(state) ? "双步虎符：红方可连续走两步" : "红方行动";
     if (state.enemyMomentum) state.message = "盈不可久：红方每次吃子，都会强化黑方下一次行动";
-    const meteor = window.XQ.Meteor.startLevel(state);
-    if (meteor) state.message = meteor;
+    const meteor = window.XQ.Meteor.startLevel(state); if (meteor) { state.message = meteor; window.XQ.MoveRecord?.event?.(state, meteor, "item"); }
     if (state.randomPlacement) {
       state.phase = "placement";
       window.XQ.RandomPlacement.select(state, state.randomPlacementSelected);
@@ -150,7 +150,7 @@ window.XQ.Levels = (() => {
   }
 
   function comboText(state) {
-    const extra = window.XQ.LateExtra?.name?.(state); if (extra) return ` · 组合技：${extra}`;
+    const extra = window.XQ.LateExtra?.name?.(state); if (extra) return state.enemyLinkedBranches?.pairLimit ? " · 机制：连枝" : ` · 组合技：${extra}`;
     if (state.enemyCharm?.blade) return " · 组合技：媚骨蚀锋";
     if (state.enemyCharm?.formation) return " · 组合技：媚阵";
     if (state.enemyTurtle) return " · 组合技：龟缩";

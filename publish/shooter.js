@@ -12,7 +12,7 @@ window.XQ.Shooter = (() => {
   let frame = 0;
   let lastTime = 0;
   let pointer = null;
-  let resizeObserver;
+  let resizeFrame = 0;
 
   function configure(nextOptions) {
     options = nextOptions;
@@ -25,10 +25,12 @@ window.XQ.Shooter = (() => {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     $("shooterSurrenderBtn").addEventListener("click", surrender);
-    if (typeof ResizeObserver === "function") {
-      resizeObserver = new ResizeObserver(View().resize);
-      resizeObserver.observe(canvas);
-    } else window.addEventListener("resize", View().resize);
+    const resize = () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(View().resize);
+    };
+    window.addEventListener("resize", resize, { passive: true });
+    window.visualViewport?.addEventListener("resize", resize, { passive: true });
   }
 
   async function start() {
@@ -149,6 +151,7 @@ window.XQ.Shooter = (() => {
   function stop() {
     active = false;
     cancelAnimationFrame(frame);
+    cancelAnimationFrame(resizeFrame);
     keys.clear();
     pointer = null;
     $("shooterModal").classList.add("hidden");

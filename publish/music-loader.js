@@ -5,11 +5,10 @@ window.XQ.MusicLoader = (() => {
     menu: { url: "./assets/audio/bgm/Lullaby.mp3", bytes: 2500189 },
     battle: { url: "./assets/audio/bgm/knight.mp3", bytes: 2481345 },
   };
-  const TOTAL_BYTES = Object.values(TRACKS).reduce((sum, track) => sum + track.bytes, 0);
   const loadedBytes = { menu: 0, battle: 0 };
   const sources = {};
-  let menuPromise = null, battlePromise = null, allPromise = null;
-  let backgroundActive = false, playbackActive = false, scheduled = false;
+  let menuPromise = null, battlePromise = null;
+  let backgroundLoads = 0, playbackActive = false, menuScheduled = false;
   let hideTimer = 0;
   const $ = (id) => document.getElementById(id);
 
@@ -21,13 +20,13 @@ window.XQ.MusicLoader = (() => {
   function hideSoon() {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
-      if (!backgroundActive && !playbackActive) $("musicLoadingStatus")?.classList.add("hidden");
+      if (!backgroundLoads && !playbackActive) $("musicLoadingStatus")?.classList.add("hidden");
     }, 650);
   }
 
-  function renderProgress() {
-    const loaded = Object.values(loadedBytes).reduce((sum, value) => sum + value, 0);
-    const percent = Math.min(100, Math.round((loaded / TOTAL_BYTES) * 100));
+  function renderProgress(id) {
+    const track = TRACKS[id];
+    const percent = Math.min(100, Math.round((loadedBytes[id] / track.bytes) * 100));
     show();
     $("musicLoadingStatus")?.classList.remove("is-indeterminate");
     if ($("musicLoadingText")) $("musicLoadingText").textContent = "音乐后台加载";
@@ -44,7 +43,7 @@ window.XQ.MusicLoader = (() => {
       if (!response.body?.getReader) {
         const blob = await response.blob();
         loadedBytes[id] = track.bytes;
-        renderProgress();
+        renderProgress(id);
         return URL.createObjectURL(blob);
       }
       const reader = response.body.getReader();
@@ -56,46 +55,50 @@ window.XQ.MusicLoader = (() => {
         chunks.push(value);
         received += value.byteLength;
         loadedBytes[id] = Math.min(track.bytes, received);
-        renderProgress();
+        renderProgress(id);
       }
       loadedBytes[id] = track.bytes;
-      renderProgress();
+      renderProgress(id);
       const type = response.headers.get("content-type") || "audio/mpeg";
       return URL.createObjectURL(new Blob(chunks, { type }));
     } catch (err) {
       console.warn("background music preload failed:", id, err.message);
       loadedBytes[id] = track.bytes;
-      renderProgress();
+      renderProgress(id);
       return track.url;
     }
   }
 
-  function finish() {
-    backgroundActive = false;
-    renderProgress();
-    if (!playbackActive) hideSoon();
+  async function load(id) {
+    backgroundLoads += 1;
+    renderProgress(id);
+    try {
+      sources[id] = await loadTrack(id);
+      return sources[id];
+    } finally {
+      backgroundLoads = Math.max(0, backgroundLoads - 1);
+      if (!backgroundLoads && !playbackActive) hideSoon();
+    }
   }
 
-  function start() {
-    if (allPromise) return allPromise;
-    backgroundActive = true;
-    renderProgress();
-    menuPromise = loadTrack("menu").then((source) => (sources.menu = source));
-    battlePromise = menuPromise.then(() => loadTrack("battle"))
-      .then((source) => (sources.battle = source));
-    allPromise = Promise.all([menuPromise, battlePromise]).finally(finish);
-    return allPromise;
+  function loadMenu() {
+    if (!menuPromise) menuPromise = load("menu");
+    return menuPromise;
+  }
+
+  function loadBattle() {
+    if (!battlePromise) battlePromise = loadMenu().then(() => load("battle"));
+    return battlePromise;
   }
 
   function ready(id) {
     if (!TRACKS[id]) return Promise.reject(new Error(`Unknown music scene: ${id}`));
-    start();
-    return id === "menu" ? menuPromise : battlePromise;
+    return id === "menu" ? loadMenu() : loadBattle();
   }
 
   function showPlaybackLoading(active) {
     playbackActive = Boolean(active);
-    if (backgroundActive) return;
+    if (backgroundLoads) return;
     if (!playbackActive) return hideSoon();
     show();
     $("musicLoadingStatus")?.classList.add("is-indeterminate");
@@ -104,9 +107,9 @@ window.XQ.MusicLoader = (() => {
   }
 
   function schedule() {
-    if (scheduled || allPromise) return;
-    scheduled = true;
-    const begin = () => setTimeout(start, 180);
+    if (menuScheduled || menuPromise) return;
+    menuScheduled = true;
+    const begin = () => setTimeout(loadMenu, 180);
     if (typeof requestIdleCallback === "function") requestIdleCallback(begin, { timeout: 700 });
     else begin();
   }

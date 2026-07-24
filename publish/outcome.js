@@ -32,9 +32,10 @@ window.XQ.Outcome = (() => {
     if (state.level === 15) {
       milestones = window.XQ.Progression.finishRun(state);
       milestones.push(...window.XQ.Progression.unlockStoryGalleries(state));
+      if (["normal", "rebel", "random", "recruit"].includes(state.mode)) state.slotUsePending = true;
     }
     const unlocked = milestones.concat(window.XQ.Progression.unlockComboShop(state));
-    const rewards = state.mode === "random" ? window.XQ.RandomMode.reward(state) : window.XQ.Items.roll(state.level, state);
+    const rewards = window.XQ.RandomMode?.is?.(state) ? window.XQ.RandomMode.reward(state) : window.XQ.Items.roll(state.level, state);
     state.pendingRewards = rewards;
     return { rewards, unlocked };
   }
@@ -43,9 +44,17 @@ window.XQ.Outcome = (() => {
     const real = (state.pendingRewards || []).find((item) => item.id === card.id && item.name === card.name);
     if (!real) throw new Error("奖励卡校验失败");
     window.XQ.Items.apply(state, real);
+    window.XQ.MoveRecord?.event?.(state, `获得过关奖励：${real.name}`, "item");
     state.phase = "rewarded";
     state.pendingRewards = [];
+    const slotUse = state.slotUsePending;
+    if (slotUse) {
+      window.XQ.Progression.grantSlotUse(state);
+      state.slotUsePending = false;
+      window.XQ.MoveRecord?.event?.(state, "征程结算完成：私库搜寻次数 +1", "mechanism");
+    }
     state.message = real.points ? `获得 ${real.name}，积分 +${real.points}` : `获得 ${real.name}`;
+    if (slotUse) state.message += "；征程结算完成，私库搜寻次数 +1";
     return real;
   }
 

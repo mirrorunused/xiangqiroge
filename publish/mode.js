@@ -11,10 +11,12 @@ window.XQ.Mode = (() => {
       normal: { ...legacy },
       rebel: { ...EMPTY_RECORD },
       random: { ...EMPTY_RECORD },
+      recruit: { ...EMPTY_RECORD },
     }, state.bestRecords || {});
     state.bestRecords.normal = normalizeRecord(state.bestRecords.normal);
     state.bestRecords.rebel = normalizeRecord(state.bestRecords.rebel);
     state.bestRecords.random = normalizeRecord(state.bestRecords.random);
+    state.bestRecords.recruit = normalizeRecord(state.bestRecords.recruit);
     if (state.mode !== "normal") stripTempo(state);
     window.XQ.RandomMode?.ensure?.(state);
     window.XQ.QuickMode?.ensure?.(state);
@@ -23,7 +25,7 @@ window.XQ.Mode = (() => {
   }
 
   function normalizeName(mode) {
-    return ["normal", "rebel", "random", "quick"].includes(mode) ? mode : "normal";
+    return ["normal", "rebel", "random", "recruit", "quick"].includes(mode) ? mode : "normal";
   }
 
   function normalizeRecord(record) {
@@ -53,7 +55,7 @@ window.XQ.Mode = (() => {
 
   function activeOuterItems(state) {
     const items = state?.talents?.outerItems || [];
-    if (state?.mode === "random") return window.XQ.RandomMode.activeOuterItems(state, items);
+    if (window.XQ.RandomMode?.is?.(state)) return window.XQ.RandomMode.activeOuterItems(state, items);
     if (state?.mode === "quick") return [];
     if (state?.mode !== "rebel") return items;
     const selected = items.find((item) => item.uid === state.rebelOuterUid && item.id !== "tempo");
@@ -65,7 +67,7 @@ window.XQ.Mode = (() => {
     window.XQ.Levels.reduceBase(state, window.XQ.Config.values[piece.type] || 0);
     const active = window.XQ.Late?.activeItems?.(state) || state.items || [];
     if (active.some((item) => item.id === "endure")) state.playerBonusMoves = 1;
-    if (piece.type === "K" && state.mode !== "random") return;
+    if (piece.type === "K" && !window.XQ.RandomMode?.is?.(state)) return;
     const list = state.capturedRed || (state.capturedRed = []);
     if (!list.some((entry) => entry.id === piece.id)) {
       list.push({ ...piece, capturedUid: `c${Date.now()}${Math.random().toString(16).slice(2)}` });

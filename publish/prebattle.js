@@ -20,7 +20,9 @@ window.XQ.Prebattle = (() => {
     $("startNormalBtn").onclick = () => actions.normal?.();
     $("startRebelBtn").onclick = () => actions.rebel?.();
     $("startRandomBtn").onclick = () => actions.random?.();
+    $("startRecruitBtn").onclick = () => actions.recruit?.();
     $("startQuickBtn").onclick = () => actions.quick?.();
+    $("startSlotBtn").onclick = () => actions.slot?.();
     $("startLoadBtn").onclick = () => actions.load?.();
     $("startTalentBtn").onclick = () => actions.talent?.();
     $("startAchievementsBtn").onclick = () => actions.achievements?.();
@@ -116,13 +118,19 @@ window.XQ.Prebattle = (() => {
     const normal = state.bestRecords.normal;
     const rebel = state.bestRecords.rebel;
     const random = state.bestRecords.random;
+    const recruit = state.bestRecords.recruit;
     const achievement = window.XQ.Achievements.progress(state);
-    $("startSummary").textContent = `共享积分 ${state.score || 0} · 三种征程独立保存，快速模式单局重开`;
+    $("startSummary").textContent = `共享积分 ${state.score || 0} · 四种征程独立保存，快速模式单局重开`;
     $("gameVersion").textContent = `v${window.XQ.Config.version}`;
-    $("recordSummary").textContent = `常规 ${normal.level}关 · 义军 ${rebel.level}关 · 随机棋 ${random.level}关`;
+    $("recordSummary").textContent = `常规 ${normal.level}关 · 义军 ${rebel.level}关 · 随机棋 ${random.level}关 · 招兵买马 ${recruit.level}关`;
     $("startRandomBtn").classList.toggle("hidden", !state.talents?.randomModeUnlocked);
+    $("startRecruitBtn").classList.toggle("hidden", !state.talents?.recruitModeUnlocked);
     $("startCodexBtn").classList.toggle("hidden", !window.XQ.ItemCodex?.isUnlocked?.(state));
     $("startAchievementsBtn").textContent = `成就 ${achievement.done}/${achievement.total}`;
+    const slotUses = state.talents?.slotUses || 0;
+    const slotSession = state.talents?.slotSession;
+    $("startSlotBtn").textContent = slotSession ? `继续曌帝的私库 · 第 ${slotSession.spin + 1} 轮` : `曌帝的私库 · ${slotUses} 次`;
+    $("startSlotBtn").disabled = false;
     $("unlockedList").innerHTML = "";
     unlocked(state).forEach((text) => {
       const li = document.createElement("li");
@@ -135,23 +143,26 @@ window.XQ.Prebattle = (() => {
   async function refreshSlots() {
     const request = ++slotRequest;
     try {
-      const [normal, rebel, random] = await Promise.all([
+      const [normal, rebel, random, recruit] = await Promise.all([
         window.XQ.Storage.getMode("normal"),
         window.XQ.Storage.getMode("rebel"),
         window.XQ.Storage.getMode("random"),
+        window.XQ.Storage.getMode("recruit"),
       ]);
       if (request !== slotRequest) return;
       setSlotButton("startNormalBtn", normal, "常规模式");
       setSlotButton("startRebelBtn", rebel, "义军破敌");
       setSlotButton("startRandomBtn", random, "随机棋模式");
+      setSlotButton("startRecruitBtn", recruit, "招兵买马模式");
     } catch (err) {
       console.warn("save slot summary failed:", err.message);
     }
   }
 
   function setSlotButton(id, data, label) {
-    const prefix = data ? "继续" : "开始";
-    const suffix = data ? ` · 第 ${data.level || 1} 关` : "";
+    const resumable = Boolean(data?.battleInProgress);
+    const prefix = resumable ? "继续" : "开始";
+    const suffix = resumable ? ` · 第 ${data.level || 1} 关` : "";
     $(id).textContent = `${prefix}${label}${suffix}`;
   }
 
@@ -162,6 +173,7 @@ window.XQ.Prebattle = (() => {
     if (t.outerTempoOffer) list.push("第一关 0 积分局外双步虎符已开放");
     if (t.outerTempoOffer) list.push("道具图鉴已解锁");
     if (t.randomModeUnlocked) list.push("随机棋模式已解锁");
+    if (t.recruitModeUnlocked) list.push("招兵买马模式已解锁");
     if (t.chess?.S) list.push("主教改制已解锁");
     if (t.chess?.Q) list.push("皇后改制已解锁");
     if (t.shopUnlocks?.turtleShell) list.push("局内随机商店已解锁龟壳");

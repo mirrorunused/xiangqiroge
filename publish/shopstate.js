@@ -52,6 +52,7 @@ window.XQ.ShopState = (() => {
     if (real.id === "donate") state.pendingDonate = true;
     if (real.id === "morph") state.pendingMorph = pending(real);
     if (real.id === "turtleShell") state.playerTurtle = state.playerTurtle || { active: true, shield: 0, cooldown: 0 };
+    window.XQ.MoveRecord?.event?.(state, `购入${real.name}，消耗 ${real.cost || 0} 积分`, "item");
     remove(state, real);
     return { ok: true, card: real };
   }

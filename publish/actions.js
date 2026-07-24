@@ -79,7 +79,8 @@ window.XQ.Actions = (() => {
     Ops.snapshot(state);
     state.board = state.board.filter((item) => item.id !== piece.id);
     state.pendingDestroy = false;
-    state.message = `已消灭${labels[piece.type]}`;
+    const linked = window.XQ.LinkedBranches?.onBlackCaptured?.(state, piece);
+    state.message = [`已消灭${labels[piece.type]}`, linked].filter(Boolean).join("；");
     return { done: true, killed: true };
   }
 
