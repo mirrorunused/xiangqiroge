@@ -149,7 +149,7 @@ button {
   transition: background 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out;
 }
 
-button:active:not(:disabled) {
+button:not(.cell):active:not(:disabled) {
   transform: translateY(1px);
   background: #354247;
 }
